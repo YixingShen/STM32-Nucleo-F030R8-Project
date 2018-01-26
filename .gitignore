@@ -1,4 +1,4 @@
-#忽略文件夹
+#忽略任意层级下的文件夹
 **/Listings/*
 **/Objects/*
 **/Outputs/*
