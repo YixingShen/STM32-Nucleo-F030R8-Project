@@ -1,0 +1,11 @@
+.\outputs\main.o: User\main.c
+.\outputs\main.o: User\main.h
+.\outputs\main.o: .\Include\stm32f0xx.h
+.\outputs\main.o: .\Include\stm32f030x8.h
+.\outputs\main.o: .\Include\core_cm0.h
+.\outputs\main.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\outputs\main.o: .\Include\cmsis_version.h
+.\outputs\main.o: .\Include\cmsis_compiler.h
+.\outputs\main.o: .\Include\cmsis_armcc.h
+.\outputs\main.o: .\Include\system_stm32f0xx.h
+.\outputs\main.o: User\flash_as_eeprom.h

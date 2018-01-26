@@ -1,0 +1,9 @@
+.\outputs\system_stm32f0xx.o: Startup\system_stm32f0xx.c
+.\outputs\system_stm32f0xx.o: .\Include\stm32f0xx.h
+.\outputs\system_stm32f0xx.o: .\Include\stm32f030x8.h
+.\outputs\system_stm32f0xx.o: .\Include\core_cm0.h
+.\outputs\system_stm32f0xx.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\outputs\system_stm32f0xx.o: .\Include\cmsis_version.h
+.\outputs\system_stm32f0xx.o: .\Include\cmsis_compiler.h
+.\outputs\system_stm32f0xx.o: .\Include\cmsis_armcc.h
+.\outputs\system_stm32f0xx.o: .\Include\system_stm32f0xx.h

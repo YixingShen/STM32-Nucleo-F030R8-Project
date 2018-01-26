@@ -1,0 +1,42 @@
+Dependencies for Project 'gpio', Target 'Target 1': (DO NOT MODIFY !)
+F (.\User\main.c)(0x5A6851A4)(--c99 -c --cpu Cortex-M0 -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Include-I.\RTE\_Target_1-ID:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\1.5.0\Device\Include-ID:\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DSTM32F030x8-o .\outputs\main.o --omf_browse .\outputs\main.crf --depend .\outputs\main.d)
+I (User\main.h)(0x5A68518F)
+I (.\Include\stm32f0xx.h)(0x5A647CA8)
+I (.\Include\stm32f030x8.h)(0x56E9F63A)
+I (.\Include\core_cm0.h)(0x59840DC6)
+I (D:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x53463A44)
+I (.\Include\cmsis_version.h)(0x59840DC6)
+I (.\Include\cmsis_compiler.h)(0x59840DC6)
+I (.\Include\cmsis_armcc.h)(0x59840DC6)
+I (.\Include\system_stm32f0xx.h)(0x56E9F63A)
+I (User\flash_as_eeprom.h)(0x5A68287A)
+F (.\User\main.h)(0x5A68518F)()
+F (.\User\flash_as_eeprom.c)(0x5A685139)(--c99 -c --cpu Cortex-M0 -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Include-I.\RTE\_Target_1-ID:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\1.5.0\Device\Include-ID:\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DSTM32F030x8-o .\outputs\flash_as_eeprom.o --omf_browse .\outputs\flash_as_eeprom.crf --depend .\outputs\flash_as_eeprom.d)
+I (User\flash_as_eeprom.h)(0x5A68287A)
+I (.\Include\stm32f0xx.h)(0x5A647CA8)
+I (.\Include\stm32f030x8.h)(0x56E9F63A)
+I (.\Include\core_cm0.h)(0x59840DC6)
+I (D:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x53463A44)
+I (.\Include\cmsis_version.h)(0x59840DC6)
+I (.\Include\cmsis_compiler.h)(0x59840DC6)
+I (.\Include\cmsis_armcc.h)(0x59840DC6)
+I (.\Include\system_stm32f0xx.h)(0x56E9F63A)
+F (.\User\flash_as_eeprom.h)(0x5A68287A)()
+F (.\Startup\startup_stm32f030x8.s)(0x56E9F63A)(--cpu Cortex-M0 -g --apcs=interwork --pd "__MICROLIB SETA 1"-I.\RTE\_Target_1-ID:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\1.5.0\Device\Include-ID:\Keil_v5\ARM\CMSIS\Include--pd "__UVISION_VERSION SETA 524" --pd "STM32F030x8 SETA 1"--list .\listings\startup_stm32f030x8.lst --xref -o .\outputs\startup_stm32f030x8.o --depend .\outputs\startup_stm32f030x8.d)
+F (.\Startup\system_stm32f0xx.c)(0x5A647F90)(--c99 -c --cpu Cortex-M0 -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I .\Include-I.\RTE\_Target_1-ID:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\1.5.0\Device\Include-ID:\Keil_v5\ARM\CMSIS\Include-D__UVISION_VERSION="524" -DSTM32F030x8-o .\outputs\system_stm32f0xx.o --omf_browse .\outputs\system_stm32f0xx.crf --depend .\outputs\system_stm32f0xx.d)
+I (.\Include\stm32f0xx.h)(0x5A647CA8)
+I (.\Include\stm32f030x8.h)(0x56E9F63A)
+I (.\Include\core_cm0.h)(0x59840DC6)
+I (D:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x53463A44)
+I (.\Include\cmsis_version.h)(0x59840DC6)
+I (.\Include\cmsis_compiler.h)(0x59840DC6)
+I (.\Include\cmsis_armcc.h)(0x59840DC6)
+I (.\Include\system_stm32f0xx.h)(0x56E9F63A)
+F (.\Include\cmsis_armcc.h)(0x59840DC6)()
+F (.\Include\cmsis_compiler.h)(0x59840DC6)()
+F (.\Include\cmsis_version.h)(0x59840DC6)()
+F (.\Include\core_cm0.h)(0x59840DC6)()
+F (.\Include\stdint.h)(0x588B8344)()
+F (.\Include\stm32f0xx.h)(0x5A647CA8)()
+F (.\Include\stm32f030x8.h)(0x56E9F63A)()
+F (.\Include\system_stm32f0xx.h)(0x56E9F63A)()
