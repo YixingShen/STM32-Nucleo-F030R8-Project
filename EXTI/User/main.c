@@ -58,12 +58,12 @@ static void EXTI4_15_IRQHandler_Config(void)
 	//不屏蔽EXTI13
 	EXTI->IMR |= EXTI_IMR_MR13;
 	//上升沿触发
-	//EXTI->RTSR |= EXTI_RTSR_TR13;
+	EXTI->RTSR |= EXTI_RTSR_TR13;
 	//下降沿触发
 	EXTI->FTSR |= EXTI_FTSR_TR13;
 	/* Configure NVIC for External Interrupt */
 	//set EXTI line 4_15 Interrupt to the lowest priority
-	NVIC_SetPriority(EXTI4_15_IRQn, 0);//__NVIC_SetPriority(EXTI4_15_IRQn, 0);
+	NVIC_SetPriority(EXTI4_15_IRQn, 3);//__NVIC_SetPriority(EXTI4_15_IRQn, 0);
 	//Enable Interrupt on EXTI4_15
 	NVIC_EnableIRQ(EXTI4_15_IRQn);//__NVIC_EnableIRQ(EXTI4_15_IRQn);
 }
@@ -74,7 +74,9 @@ void EXTI4_15_IRQHandler(void)
 	{
 		//CLEAR PIF13
 		EXTI->PR = EXTI_PR_PR13;
-		if(light==0)light=1;
+		//if(light==0)light=1;
+		//else light=0;
+		if((GPIOC->IDR&GPIO_IDR_13)!=0)light=1;
 		else light=0;
 	}
 }
