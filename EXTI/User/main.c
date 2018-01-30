@@ -28,7 +28,7 @@ int main(void)
 	//不屏蔽EXTI13
 	EXTI->IMR |= EXTI_IMR_MR13;
 	//上升沿触发
-	EXTI->RTSR |= EXTI_RTSR_TR13;
+	//EXTI->RTSR |= EXTI_RTSR_TR13;
 	//下降沿触发
 	EXTI->FTSR |= EXTI_FTSR_TR13;
 	/* Configure NVIC for External Interrupt */
