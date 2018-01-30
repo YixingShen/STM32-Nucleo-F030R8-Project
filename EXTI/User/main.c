@@ -1,5 +1,6 @@
 #include "main.h"
 
+static void EXTI4_15_IRQHandler_Config(void);
 
 void delay(__IO uint32_t delay_cnt)
 {
@@ -21,21 +22,7 @@ int main(void)
 	//USER_BUTTON-PC13
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; //打开PORT C时钟
 	GPIOC->MODER &= (~GPIO_MODER_MODER13); //PC13设为输入
-	/* Enable SYSCFG Clock */
-	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
-	//PC3-EXTI13
-	SYSCFG->EXTICR[3] = SYSCFG_EXTICR4_EXTI13_PC;
-	//不屏蔽EXTI13
-	EXTI->IMR |= EXTI_IMR_MR13;
-	//上升沿触发
-	//EXTI->RTSR |= EXTI_RTSR_TR13;
-	//下降沿触发
-	EXTI->FTSR |= EXTI_FTSR_TR13;
-	/* Configure NVIC for External Interrupt */
-	//set EXTI line 4_15 Interrupt to the lowest priority
-	__NVIC_SetPriority(EXTI4_15_IRQn, 0);
-	//Enable Interrupt on EXTI4_15
-	__NVIC_EnableIRQ(EXTI4_15_IRQn);
+	EXTI4_15_IRQHandler_Config();//PC13作为EXTI使用
 
 	light=0;
 	while(1)
@@ -57,10 +44,33 @@ int main(void)
 }
 
 
+/**
+  * @brief  Configures EXTI line 4_15 (connected to PC.13 pin) in interrupt mode
+  * @param  None
+  * @retval None
+  */
+static void EXTI4_15_IRQHandler_Config(void)
+{
+	/* Enable SYSCFG Clock */
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
+	//PC3-EXTI13
+	SYSCFG->EXTICR[3] = SYSCFG_EXTICR4_EXTI13_PC;
+	//不屏蔽EXTI13
+	EXTI->IMR |= EXTI_IMR_MR13;
+	//上升沿触发
+	//EXTI->RTSR |= EXTI_RTSR_TR13;
+	//下降沿触发
+	EXTI->FTSR |= EXTI_FTSR_TR13;
+	/* Configure NVIC for External Interrupt */
+	//set EXTI line 4_15 Interrupt to the lowest priority
+	NVIC_SetPriority(EXTI4_15_IRQn, 0);//__NVIC_SetPriority(EXTI4_15_IRQn, 0);
+	//Enable Interrupt on EXTI4_15
+	NVIC_EnableIRQ(EXTI4_15_IRQn);//__NVIC_EnableIRQ(EXTI4_15_IRQn);
+}
 
 void EXTI4_15_IRQHandler(void)
 {
-	if((EXTI->PR&EXTI_PR_PR13) != 0) //PIF13=1
+	if((EXTI->PR&EXTI_PR_PR13) != 0) //PIF13=1 EXTI13中断
 	{
 		//CLEAR PIF13
 		EXTI->PR = EXTI_PR_PR13;
