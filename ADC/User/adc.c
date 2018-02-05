@@ -87,13 +87,13 @@ void ADC_configures(void)
 	ADC1->CFGR1 |= ADC_CFGR1_CONT | ADC_CFGR1_WAIT| ADC_CFGR1_OVRMOD; /* (2) */
 	ADC1->CHSELR = ADC_CHSELR_CHSEL0; /* (3) */
 	ADC1->SMPR |= ADC_SMPR_SMP_0 | ADC_SMPR_SMP_1 | ADC_SMPR_SMP_2; /* (4) */
-//	ADC1->IER = ADC_IER_EOCIE | ADC_IER_EOSEQIE | ADC_IER_OVRIE; /* (5) */
+	ADC1->IER = ADC_IER_EOCIE | ADC_IER_EOSEQIE | ADC_IER_OVRIE; /* (5) */
 	ADC->CCR |= ADC_CCR_VREFEN; /* (6) */
 	/* Configure NVIC for ADC */
 	/* (7) Enable Interrupt on ADC */
 	/* (8) Set priority for ADC */
-//	NVIC_EnableIRQ(ADC1_COMP_IRQn); /* (7) */
-//	NVIC_SetPriority(ADC1_COMP_IRQn,0); /* (8) */ 	
+	NVIC_EnableIRQ(ADC1_COMP_IRQn); /* (7) */
+	NVIC_SetPriority(ADC1_COMP_IRQn,0); /* (8) */ 	
 }
 
 void ADC_startConversion(void)
@@ -107,11 +107,11 @@ void ADC_startConversion(void)
 uint16_t ADC_readDR(void)
 {
 	uint16_t uint16=0;
-	if(ADC1->IER & ADC_IER_EOCIE || ADC1->IER & ADC_IER_EOSEQIE)
+	if(ADC1->ISR & ADC_ISR_EOC || ADC1->ISR & ADC_ISR_EOSEQ)
 	{
 		uint16=ADC1->DR;
-		if(ADC1->IER & ADC_IER_EOCIE) ADC1->IER |= (~ADC_IER_EOCIE);
-		if(ADC1->IER & ADC_IER_EOSEQIE) ADC1->IER |= (~ADC_IER_EOSEQIE);
+		if(ADC1->ISR & ADC_ISR_EOC) ADC1->ISR |= (~ADC_ISR_EOC);
+		if(ADC1->ISR & ADC_ISR_EOSEQ) ADC1->ISR |= (~ADC_ISR_EOSEQ);
 	}
 	return uint16;
 }
