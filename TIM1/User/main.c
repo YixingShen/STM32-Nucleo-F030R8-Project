@@ -16,11 +16,12 @@ void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 
 void PLL_Config(void)//configuration PLL as system clock
 {
-//	RCC->CR |= RCC_CR_PLLON;
-//	RCC->CFGR |= RCC_CFGR_PLLMUL12;
-//	while(RCC->CR&RCC_CR_PLLRDY==0);
-//	RCC->CFGR |= RCC_CFGR_SW_PLL;
-//	while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);	
+	RCC->CFGR |= RCC_CFGR_PLLMUL12;
+	RCC->CR |= RCC_CR_PLLON;
+	while(RCC->CR&RCC_CR_PLLRDY==0);
+	RCC->CFGR |= RCC_CFGR_SW_PLL;
+	while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);	
+#if 0
 	/* (1) Test if PLL is used as System clock */
 	/* (2) Select HSI as system clock */
 	/* (3) Wait for HSI switched */
@@ -44,7 +45,7 @@ void PLL_Config(void)//configuration PLL as system clock
 	{
 		/* For robust implementation, add here time-out management */
 	}
-	RCC->CFGR = RCC->CFGR & (~RCC_CFGR_PLLMUL) | (RCC_CFGR_PLLMUL12); /* (6) PLLSRC=0 HSI/2 selected as PLL input clock; (8MHz/2)*12=48MHz PLLCLK=48MHz*/
+	RCC->CFGR = RCC->CFGR & (~RCC_CFGR_PLLMUL) | (RCC_CFGR_PLLMUL12); /* (6) PLLSRC=0 HSI/2 selected as PLL input clock; (8MHz/2)*12=48MHz PLLCLK=48MHz MAX*/
 	RCC->CR |= RCC_CR_PLLON; /* (7) */
 	while((RCC->CR & RCC_CR_PLLRDY) == 0) /* (8) */
 	{
@@ -56,13 +57,14 @@ void PLL_Config(void)//configuration PLL as system clock
 		/* For robust implementation, add here time-out management */
 	}
 	//HPRE[3:0]=0000 HCLK=SYSCLK ; PPRE[2:0]=000  PCLK=HCLK=48MHz
+#endif
 }
 
 void TIM_config(void)
 {
 	//Enable the peripheral clock of Timer 1
 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-#if 0	
+#if 1
 	TIM1->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
 	TIM1->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
 #else
@@ -81,6 +83,8 @@ void TIM_config(void)
 
 int main(void)
 {
+	PLL_Config();
+	
 	//LED2-PA5
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
 	GPIOA->MODER &= (~GPIO_MODER_MODER5);
