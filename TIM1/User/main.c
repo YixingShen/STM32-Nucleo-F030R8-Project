@@ -1,6 +1,5 @@
 #include "main.h"
 
-//uint16_t dly;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -64,10 +63,10 @@ void TIM_config(void)
 {
 	//Enable the peripheral clock of Timer 1
 	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-#if 1
+#if 1//使用PLL作为系统时钟
 	TIM1->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
 	TIM1->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
-#else
+#else //使用HSI作为系统时钟
 	TIM1->PSC = 0;//HSI=8MHz
 	TIM1->ARR = 8000-1;//as timer clock is 8MHz, an event occurs each 1ms	
 #endif	
@@ -79,6 +78,19 @@ void TIM_config(void)
 	NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn,0); //Set priority for UEV	
 #endif	
 	TIM1->CR1 |= TIM_CR1_CEN;
+}
+
+void MCO_config(void)
+{
+	//PA8配置成复用功能MCO  
+	//RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
+	GPIOA->MODER &= ~GPIO_MODER_MODER8;
+	GPIOA->MODER |= GPIO_MODER_MODER8_1;//MODER8[1:0]=10,PA8选择复用功能  
+	GPIOA->AFR[1] &=  ~GPIO_AFRH_AFRH0;//PA8选择复用功能AF0，即MCO
+	
+	//选择MCO上输出的时钟  
+	//RCC->CFGR |= (uint32_t)0x80000000U;//not available on stm32f030x8,PLL no divided for MCO
+	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_PLL;//RCC_CFGR_MCO_SYSCLK;//
 }
 
 int main(void)
@@ -93,24 +105,22 @@ int main(void)
 	//GPIOA->PUPDR &= (~GPIO_PUPDR_PUPDR5);
 	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR5_0; //PA5 PULL-UP
 	
-	TIM_config();
+	MCO_config();
 	
-	//dly=2000;
+	TIM_config();
+
 	while(1)
 	{
-		//if(dly>1000)
-		//{
-			//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
-			SET_LED2;
-			CLR_SET_LED2_BIT;
-		//}
+		//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
+		SET_LED2;
+		CLR_SET_LED2_BIT;
+		
 		delay(1000);//1s
-		//else
-		//{
-			//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
-			RESET_LED2;
-			CLR_RESET_LED2_BIT;
-		//}
+
+		//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
+		RESET_LED2;
+		CLR_RESET_LED2_BIT;
+		
 		delay(1000);//1s
 	}
 }
