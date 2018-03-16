@@ -63,7 +63,7 @@ void TIM_config(void)
 {
 	//Enable the peripheral clock of Timer 1
 	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-#if 1//使用PLL作为系统时钟
+#if 0//使用PLL作为系统时钟
 	TIM3->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
 	TIM3->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
 #else //使用HSI作为系统时钟
@@ -71,7 +71,7 @@ void TIM_config(void)
 	TIM3->ARR = 8000-1;//as timer clock is 8MHz, an event occurs each 1ms	
 #endif	
 	TIM3->CR1 &= ~TIM_CR1_DIR;
-#if 0	
+#if 1	
 	TIM3->DIER |= TIM_DIER_UIE;
 	/* Configure NVIC for Timer 1 update event */
 	NVIC_EnableIRQ(TIM3_IRQn); // Enable Interrupt
@@ -90,12 +90,13 @@ void MCO_config(void)
 	
 	//选择MCO上输出的时钟  
 	//RCC->CFGR |= (uint32_t)0x80000000U;//not available on stm32f030x8,PLL no divided for MCO
-	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_PLL;//RCC_CFGR_MCO_SYSCLK;//
+	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_SYSCLK;//RCC_CFGR_MCO_PLL;//
 }
-
+uint16_t time_1ms;
+uint8_t time_1s;
 int main(void)
 {
-	PLL_Config();
+	//PLL_Config();
 	
 	//LED2-PA5
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
@@ -109,30 +110,40 @@ int main(void)
 	
 	TIM_config();
 
+	time_1ms=0;
+	time_1s=0;
 	while(1)
 	{
-		//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
-		SET_LED2;
-		CLR_SET_LED2_BIT;
-		
-		delay(1000);//1s
-
-		//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
-		RESET_LED2;
-		CLR_RESET_LED2_BIT;
-		
-		delay(1000);//1s
+		if(time_1s==2)time_1s=0;
+		if(time_1s==0)
+		{
+			//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
+			SET_LED2;
+			CLR_SET_LED2_BIT;
+		}
+		//delay(1000);//1s
+		else
+		{
+			//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
+			RESET_LED2;
+			CLR_RESET_LED2_BIT;
+		}
+		//delay(1000);//1s
 	}
 }
 
-#if 0
-void TIM3_IRQn(void)
+#if 1
+void TIM3_IRQHandler(void)
 {
 	if(TIM3->SR & TIM_SR_UIF)
 	{
 		TIM3->SR &= ~TIM_SR_UIF;
-		if(dly>0)dly--;
-		else dly=2000;
+		time_1ms++;
+		if(time_1ms>=1000)
+		{
+			time_1ms=0;
+			time_1s++;
+		}
 	}
 }
 #endif
