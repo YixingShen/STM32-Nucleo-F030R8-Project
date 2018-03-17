@@ -71,7 +71,7 @@ void TIM_config(void)
 	TIM6->ARR = 8000-1;//as timer clock is 8MHz, an event occurs each 1ms	
 #endif	
 	TIM6->CR1 &= ~TIM_CR1_DIR;
-#if 1	
+#if 1
 	TIM6->DIER |= TIM_DIER_UIE;
 	/* Configure NVIC for Timer 1 update event */
 	NVIC_EnableIRQ(TIM6_IRQn); // Enable Interrupt

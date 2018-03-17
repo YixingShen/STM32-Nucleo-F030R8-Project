@@ -108,6 +108,7 @@ __Vectors       DCD     __initial_sp                   ; Top of Stack
                 DCD     TIM1_CC_IRQHandler             ; TIM1 Capture Compare
                 DCD     0                              ; Reserved
                 DCD     TIM3_IRQHandler                ; TIM3
+				DCD     TIM6_IRQHandler                ; TIM6
                 DCD     0                              ; Reserved
                 DCD     0                              ; Reserved
                 DCD     TIM14_IRQHandler               ; TIM14
@@ -178,6 +179,7 @@ Default_Handler PROC
                 EXPORT  TIM1_BRK_UP_TRG_COM_IRQHandler [WEAK]
                 EXPORT  TIM1_CC_IRQHandler             [WEAK]
                 EXPORT  TIM3_IRQHandler                [WEAK]
+			    EXPORT  TIM6_IRQHandler                [WEAK]
                 EXPORT  TIM14_IRQHandler               [WEAK]
                 EXPORT  TIM15_IRQHandler               [WEAK]
                 EXPORT  TIM16_IRQHandler               [WEAK]
@@ -204,6 +206,7 @@ ADC1_IRQHandler
 TIM1_BRK_UP_TRG_COM_IRQHandler
 TIM1_CC_IRQHandler
 TIM3_IRQHandler
+TIM6_IRQHandler
 TIM14_IRQHandler
 TIM15_IRQHandler
 TIM16_IRQHandler
