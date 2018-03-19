@@ -110,7 +110,7 @@ __Vectors       DCD     __initial_sp                   ; Top of Stack
                 DCD     TIM3_IRQHandler                ; TIM3
 				DCD     TIM6_IRQHandler                ; TIM6
                 DCD     0                              ; Reserved
-                DCD     0                              ; Reserved
+                ;DCD     0                              ; Reserved
                 DCD     TIM14_IRQHandler               ; TIM14
                 DCD     TIM15_IRQHandler               ; TIM15
                 DCD     TIM16_IRQHandler               ; TIM16

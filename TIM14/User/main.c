@@ -114,21 +114,21 @@ int main(void)
 	time_1s=0;
 	while(1)
 	{
-		//if(time_1s==2)time_1s=0;
-		//if(time_1s==0)
+		if(time_1s==2)time_1s=0;
+		if(time_1s==0)
 		{
 			//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
 			SET_LED2;
 			CLR_SET_LED2_BIT;
 		}
-		delay(1000);//1s
-		//else
+		//delay(1000);//1s
+		else
 		{
 			//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
 			RESET_LED2;
 			CLR_RESET_LED2_BIT;
 		}
-		delay(1000);//1s
+		//delay(1000);//1s
 	}
 }
 
