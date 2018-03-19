@@ -63,7 +63,7 @@ void TIM_config(void)
 {
 	//Enable the peripheral clock of Timer 1
 	RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
-#if 0//使用PLL作为系统时钟
+#if 1//使用PLL作为系统时钟
 	TIM14->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
 	TIM14->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
 #else //使用HSI作为系统时钟
@@ -73,7 +73,7 @@ void TIM_config(void)
 	//TIM14->CR1 &= ~TIM_CR1_DIR;//TIM6 TIM14计数器只能向上计数，所以没有DIR位
 #if 1
 	TIM14->DIER |= TIM_DIER_UIE;
-	/* Configure NVIC for Timer 1 update event */
+	/* Configure NVIC for Timer 14 update event */
 	NVIC_EnableIRQ(TIM14_IRQn); // Enable Interrupt
 	NVIC_SetPriority(TIM14_IRQn,0); //Set priority for UEV	
 #endif	
@@ -96,7 +96,7 @@ uint16_t time_1ms;
 uint8_t time_1s;
 int main(void)
 {
-	//PLL_Config();
+	PLL_Config();
 	
 	//LED2-PA5
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
@@ -114,21 +114,21 @@ int main(void)
 	time_1s=0;
 	while(1)
 	{
-		if(time_1s==2)time_1s=0;
-		if(time_1s==0)
+		//if(time_1s==2)time_1s=0;
+		//if(time_1s==0)
 		{
 			//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
 			SET_LED2;
 			CLR_SET_LED2_BIT;
 		}
-		//delay(1000);//1s
-		else
+		delay(1000);//1s
+		//else
 		{
 			//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
 			RESET_LED2;
 			CLR_RESET_LED2_BIT;
 		}
-		//delay(1000);//1s
+		delay(1000);//1s
 	}
 }
 
