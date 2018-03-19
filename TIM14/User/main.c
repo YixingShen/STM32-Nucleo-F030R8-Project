@@ -63,7 +63,7 @@ void TIM_config(void)
 {
 	//Enable the peripheral clock of Timer 1
 	RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
-#if 1//使用PLL作为系统时钟
+#if 0//使用PLL作为系统时钟
 	TIM14->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
 	TIM14->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
 #else //使用HSI作为系统时钟
@@ -96,7 +96,7 @@ uint16_t time_1ms;
 uint8_t time_1s;
 int main(void)
 {
-	PLL_Config();
+	//PLL_Config();
 	
 	//LED2-PA5
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
