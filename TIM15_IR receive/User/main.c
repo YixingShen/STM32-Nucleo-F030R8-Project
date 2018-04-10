@@ -48,11 +48,19 @@ void PLL_Config(void)//configuration PLL as system clock
 
 void TIM_config(void)//配置为PWM输入模式
 {
+#if 0
 	//PA2配置成复用功能TIM15_CH1
 	//RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
 	GPIOA->MODER &= ~GPIO_MODER_MODER2;
 	GPIOA->MODER |= GPIO_MODER_MODER2_1;//MODER2[1:0]=10,PA2选择复用功能  
 	GPIOA->AFR[0] &=  ~GPIO_AFRL_AFRL2;//PA2选择复用功能AF0，即TIM15_CH1
+#else
+	//PB14配置成复用功能TIM15_CH1
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
+	GPIOB->MODER &= ~GPIO_MODER_MODER14;
+	GPIOB->MODER |= GPIO_MODER_MODER14_1;//MODER14[1:0]=10,PB14选择复用功能  
+	GPIOB->AFR[1] |=  0x01<<((14-8)*4);//PB14选择复用功能AF1，即TIM15_CH1   
+#endif
    
 	//Enable the peripheral clock of Timer 1
 	RCC->APB2ENR |= RCC_APB2ENR_TIM15EN;
