@@ -65,12 +65,11 @@ void TIM_config(void)//配置为PWM输入模式
 	//Enable the peripheral clock of Timer 1
 	RCC->APB2ENR |= RCC_APB2ENR_TIM15EN;
 #if 0//使用PLL作为系统时钟
-	TIM15->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
-	TIM15->ARR=180000-1;//as timer clock is 12MHz, an event occurs each 15ms
+	TIM15->PSC|=11;//Set prescaler to 12, so APBCLK/12 i.e 4MHz
 #else //使用HSI作为系统时钟
-	TIM15->PSC = 0;//HSI=8MHz
-	TIM15->ARR = 120000-1;//as timer clock is 8MHz, an event occurs each 15ms	
-#endif	
+	TIM15->PSC = 1;//HSI=8MHz；计数频率=8/2=4MHz
+#endif		
+	TIM15->ARR = 60000-1;//as timer clock is 4MHz, an event occurs each 15ms	
 	//TIM15->CR1 &= ~TIM_CR1_DIR;//TIM6 TIM14 TIM15计数器只能向上计数，所以没有DIR位
    
    TIM15->CCMR1 |= TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_1; //CC1S = 01 选择CH1作为TIM15_CCR1源, CC2S = 10 选择CH1作为TIM15_CCR2源
@@ -98,12 +97,10 @@ void MCO_config(void)
 	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_SYSCLK;//RCC_CFGR_MCO_PLL;//
 }
 
-uint16_t time_15ms;
-uint8_t time_1s,IRrxd[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level;
-uint32_t wholePulseLength,lowPulseLength;
+uint8_t time_15ms,time_1s,light,IRrxd[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level,gap;
+uint16_t wholePulseLength,lowPulseLength;
 int main(void)
 {
-   uint8_t light;
 	//PLL_Config();
 	
 	//LED2-PA5
@@ -122,7 +119,12 @@ int main(void)
 	time_1s=0;
    
    IRrxd_start=0;
-   
+   IRrxd_byte_cnt=0;
+   IRrxd_bit_cnt=0;
+   IRrxd_bit_level=255;      
+   wholePulseLength=0;
+   lowPulseLength=0;
+   gap=0;
 	while(1)
 	{
    #if 0
@@ -139,7 +141,7 @@ int main(void)
 			RESET_LED2;
 			CLR_RESET_LED2_BIT;
 		}
-   #endif
+   #else
       if(IRrxd[0]==0x61&&IRrxd[1]==0xD6)
       {
          if(IRrxd[2]^IRrxd[3]==0xFF)
@@ -163,7 +165,8 @@ int main(void)
             }
          }         
       }
-      if(light==1)
+
+      if(light==0)
       {
 			SET_LED2;
 			CLR_SET_LED2_BIT;
@@ -173,6 +176,7 @@ int main(void)
 			RESET_LED2;
 			CLR_RESET_LED2_BIT;
       }
+	 #endif
 	}
 }
 
@@ -194,16 +198,16 @@ void TIM15_IRQHandler(void)
       IRrxd_bit_cnt=0;
       IRrxd_bit_level=255;      
 	}
-   if(TIM15->SR & TIM_SR_CC1IF)//下降沿，周期
+	if(TIM15->SR & TIM_SR_CC1IF)//下降沿，周期
    {
       wholePulseLength=TIM15->CCR1;
       TIM15->SR &= ~TIM_SR_CC1IF;
-      if(IRrxd_start==0)
+      if(IRrxd_start==0 && gap==1)
       {
          //接收起始码
-         if(lowPulseLength>=64&&lowPulseLength<=80)//低电平范围8~10ms，in 8MHz；
+         if(lowPulseLength>=28000&&lowPulseLength<=40000)//低电平范围7~10ms，in 4MHz；
          {
-            if(wholePulseLength>=96&&wholePulseLength<=120)//周期范围12~15ms，in 8MHz；
+            if(wholePulseLength>=48000&&wholePulseLength<=60000)//周期范围12~15ms，in 4MHz；
             {
                IRrxd_start=1;
                IRrxd_byte_cnt=0;
@@ -212,18 +216,18 @@ void TIM15_IRQHandler(void)
             }
          }
       }
-      else
+      else if(gap==1)
       {
          //接收逻辑位
-         if(lowPulseLength>=3&&lowPulseLength<=7)//低电平范围0.4~0.8ms，in 8MHz；
+         if(lowPulseLength>=1600&&lowPulseLength<=3200)//低电平范围0.4~0.8ms，in 4MHz；
          {
-            if(wholePulseLength>=6&&wholePulseLength<=13)//周期范围0.8~1.6ms，in 8MHz；
+            if(wholePulseLength>=3200&&wholePulseLength<=6400)//周期范围0.8~1.6ms，in 4MHz；
             {
                //逻辑0
                IRrxd_bit_level=0;
                IRrxd_bit_cnt++;
             }
-            else if(wholePulseLength>=12&&wholePulseLength<=24)//周期范围1.6~3.0ms，in 8MHz；
+            else if(wholePulseLength>=6400&&wholePulseLength<=12000)//周期范围1.6~3.0ms，in 4MHz；
             {
                //逻辑1
                IRrxd_bit_level=1;
@@ -255,8 +259,17 @@ void TIM15_IRQHandler(void)
                   IRrxd_bit_cnt=0;
                }	               
             }
+            if(IRrxd_byte_cnt>=4)
+            {
+               //一帧数据接收完，重新开始接收数据
+               IRrxd_start=0;
+               IRrxd_byte_cnt=0;
+               IRrxd_bit_cnt=0;
+               IRrxd_bit_level=255;               
+            }            
          }
       }
+      gap=1;
    }
    if(TIM15->SR & TIM_SR_CC2IF)//上升沿，低电平宽度
    {
