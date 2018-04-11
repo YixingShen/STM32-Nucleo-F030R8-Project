@@ -57,6 +57,8 @@ void TIM_config(void)//配置为PWM输入模式
 #else
 	//PB14配置成复用功能TIM15_CH1
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
+   GPIOB->PUPDR &= ~GPIO_PUPDR_PUPDR14_1;//
+   GPIOB->PUPDR |= GPIO_PUPDR_PUPDR14_0;//PUPDR14=01，上拉
 	GPIOB->MODER &= ~GPIO_MODER_MODER14;
 	GPIOB->MODER |= GPIO_MODER_MODER14_1;//MODER14[1:0]=10,PB14选择复用功能  
 	GPIOB->AFR[1] |=  0x01<<((14-8)*4);//PB14选择复用功能AF1，即TIM15_CH1   
@@ -73,14 +75,16 @@ void TIM_config(void)//配置为PWM输入模式
 	//TIM15->CR1 &= ~TIM_CR1_DIR;//TIM6 TIM14 TIM15计数器只能向上计数，所以没有DIR位
    
    TIM15->CCMR1 |= TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_1; //CC1S = 01 选择CH1作为TIM15_CCR1源, CC2S = 10 选择CH1作为TIM15_CCR2源
-   TIM15->CCER |= TIM_CCER_CC1P | TIM_CCER_CC1E | TIM_CCER_CC2E;//CC1NP/CC1P=01，TI1FP1下降沿触发；CC2NP/CC2P=00，TI1FP2上升沿触发
    TIM15->SMCR |= TIM_SMCR_TS_2 | TIM_SMCR_TS_0 | TIM_SMCR_SMS_2;//TS=101，选择TI1FP1作为从模式控制器触发源；SMS=100，从模式控制器选择复位模式
+   TIM15->SMCR |= TIM_SMCR_MSM;//主从模式
+   TIM15->CCER |= TIM_CCER_CC1P | TIM_CCER_CC1E | TIM_CCER_CC2E;//CC1NP/CC1P=01，TI1FP1下降沿触发；CC2NP/CC2P=00，TI1FP2上升沿触发；使能IC1和IC2
    
-	TIM15->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE; //使能IC1和IC2捕获中断，更新中断
+	TIM15->DIER |= TIM_DIER_CC1IE;//TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE; //使能IC1和IC2捕获中断，更新中断
 	/* Configure NVIC for Timer 15 update event */
 	NVIC_EnableIRQ(TIM15_IRQn); // Enable Interrupt
 	NVIC_SetPriority(TIM15_IRQn,0); //Set priority for UEV	
-
+   
+   TIM15->CR1 |= TIM_CR1_URS;//只有计数器溢出才产生更新中断
 	TIM15->CR1 |= TIM_CR1_CEN;
 }
 
@@ -200,8 +204,9 @@ void TIM15_IRQHandler(void)
 	}
 	if(TIM15->SR & TIM_SR_CC1IF)//下降沿，周期
    {
+      lowPulseLength=TIM15->CCR2;//低电平宽度
       wholePulseLength=TIM15->CCR1;
-      TIM15->SR &= ~TIM_SR_CC1IF;
+      //TIM15->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
       if(IRrxd_start==0 && gap==1)
       {
          //接收起始码
@@ -271,7 +276,7 @@ void TIM15_IRQHandler(void)
       }
       gap=1;
    }
-   if(TIM15->SR & TIM_SR_CC2IF)//上升沿，低电平宽度
+/*   if(TIM15->SR & TIM_SR_CC2IF)//上升沿，低电平宽度
    {
       lowPulseLength=TIM15->CCR2;
       TIM15->SR &= ~TIM_SR_CC2IF;
@@ -283,5 +288,5 @@ void TIM15_IRQHandler(void)
          IRrxd_bit_cnt=0;
          IRrxd_bit_level=255;               
       }
-   }   
+   } */  
 }
