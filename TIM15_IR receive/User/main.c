@@ -101,7 +101,7 @@ void MCO_config(void)
 	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_SYSCLK;//RCC_CFGR_MCO_PLL;//
 }
 
-uint8_t time_15ms,time_1s,light,IRrxd[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level,gap;
+uint8_t time_15ms,time_1s,light,IRrxd[4],IRrxd_buff[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level,gap;
 uint16_t wholePulseLength,lowPulseLength;
 int main(void)
 {
@@ -146,31 +146,41 @@ int main(void)
 			CLR_RESET_LED2_BIT;
 		}
    #else
-      if(IRrxd[0]==0x61&&IRrxd[1]==0xD6)
+      /************************
+                     1
+                  3
+               5  2  6
+                  4
+      ************************/
+      if(IRrxd[0]==0x00&&IRrxd[1]==0xFF)
       {
          if(IRrxd[2]^IRrxd[3]==0xFF)
          {
             switch(IRrxd[2])
             {
-               case 0x48:
+               case 0xE2: //1
                   if(light==0)light=1;
                   else light=0;
                   break;
-               case 0xA0:
+               case 0xA8:  //2
                   break;
-               case 0xD8:
+               case 0x02:  //3
                   break;
-               case 0x58:
+               case 0x98:  //4
                   break;
-               case 0x20:
+               case 0xE0:   //5
                   break;
-               case 0x60:
+               case 0x90:   //6
                   break;     				 				  				   				 								   				  				
             }
          }         
       }
-
-      if(light==0)
+      IRrxd[0]=0;
+      IRrxd[1]=0;
+      IRrxd[2]=0;
+      IRrxd[3]=0;
+      
+      if(light==1)
       {
 			SET_LED2;
 			CLR_SET_LED2_BIT;
@@ -256,7 +266,7 @@ void TIM15_IRQHandler(void)
             {
                if(IRrxd_bit_cnt<=8)
                {				
-                  IRrxd[IRrxd_byte_cnt]|=IRrxd_bit_level<<(8-IRrxd_bit_cnt);	
+                  IRrxd_buff[IRrxd_byte_cnt]|=IRrxd_bit_level<<(8-IRrxd_bit_cnt);	
                }
                if(IRrxd_bit_cnt>=8)			//one byte end
                {
@@ -267,6 +277,14 @@ void TIM15_IRQHandler(void)
             if(IRrxd_byte_cnt>=4)
             {
                //一帧数据接收完，重新开始接收数据
+               IRrxd[0]=IRrxd_buff[0];
+               IRrxd[1]=IRrxd_buff[1];
+               IRrxd[2]=IRrxd_buff[2];
+               IRrxd[3]=IRrxd_buff[3];
+               IRrxd_buff[0]=0;
+               IRrxd_buff[1]=0;
+               IRrxd_buff[2]=0;
+               IRrxd_buff[3]=0;
                IRrxd_start=0;
                IRrxd_byte_cnt=0;
                IRrxd_bit_cnt=0;
