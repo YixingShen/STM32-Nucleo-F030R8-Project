@@ -66,7 +66,7 @@ void TIM_config(void)//配置为PWM输入模式
    
 	//Enable the peripheral clock of Timer 1
 	RCC->APB2ENR |= RCC_APB2ENR_TIM15EN;
-#if 0//使用PLL作为系统时钟
+#if 1//使用PLL作为系统时钟
 	TIM15->PSC|=11;//Set prescaler to 12, so APBCLK/12 i.e 4MHz
 #else //使用HSI作为系统时钟
 	TIM15->PSC = 1;//HSI=8MHz；计数频率=8/2=4MHz
@@ -79,7 +79,7 @@ void TIM_config(void)//配置为PWM输入模式
    //TIM15->SMCR |= TIM_SMCR_MSM;//主从模式
    TIM15->CCER |= TIM_CCER_CC1P | TIM_CCER_CC1E | TIM_CCER_CC2E;//CC1NP/CC1P=01，TI1FP1下降沿触发；CC2NP/CC2P=00，TI1FP2上升沿触发；使能IC1和IC2
 	
-   TIM15->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE; //使能IC1和IC2捕获中断，更新中断
+   TIM15->DIER |=  TIM_DIER_CC1IE;//只打开捕获通道1中断//TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE; //使能IC1和IC2捕获中断，更新中断
 	/* Configure NVIC for Timer 15 update event */
 	NVIC_EnableIRQ(TIM15_IRQn); // Enable Interrupt
 	NVIC_SetPriority(TIM15_IRQn,0); //Set priority for UEV	
@@ -101,11 +101,25 @@ void MCO_config(void)
 	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_SYSCLK;//RCC_CFGR_MCO_PLL;//
 }
 
-uint8_t time_15ms,time_1s,light,IRrxd[4],IRrxd_buff[4],IRrxd_old[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level,gap,IRrxd_cnt;
-uint16_t wholePulseLength,lowPulseLength;
+void delay(__IO uint32_t delay_cnt)//delay_cnt in 15ms
+{
+	while(delay_cnt)
+	{
+		if(TIM15->SR & TIM_SR_UIF)
+		{
+			TIM15->SR &= ~TIM_SR_UIF;
+			delay_cnt--;
+		}
+	};
+}
+
+uint8_t time_15ms,time_1s,IRrxd[4],IRrxd_buff[4],IRrxd_old[4],IRrxd_start,IRrxd_byte_cnt,IRrxd_bit_cnt,IRrxd_bit_level,gap,IRrxd_cnt;
 int main(void)
 {
-	//PLL_Config();
+   uint8_t light,flash,delay_cnt=34;
+   //delay_cnt=34;
+   
+	PLL_Config();
 	
 	//LED2-PA5
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
@@ -126,26 +140,9 @@ int main(void)
    IRrxd_byte_cnt=0;
    IRrxd_bit_cnt=0;
    IRrxd_bit_level=255;      
-   wholePulseLength=0;
-   lowPulseLength=0;
    gap=0;
 	while(1)
 	{
-   #if 0
-		if(time_1s==2)time_1s=0;
-		if(time_1s==0)
-		{
-			//GPIOA->ODR |= GPIO_ODR_5; //PA5=1
-			SET_LED2;
-			CLR_SET_LED2_BIT;
-		}
-		else
-		{
-			//GPIOA->ODR &= ~GPIO_ODR_5; //PA5=0
-			RESET_LED2;
-			CLR_RESET_LED2_BIT;
-		}
-   #else
       /************************
                      1
                   3
@@ -159,16 +156,23 @@ int main(void)
             switch(IRrxd[2])
             {
                case 0xE2: //1
+                  flash=0;
                   if(light==0)light=1;
                   else light=0;
                   break;
                case 0xA8:  //2
+                  if(flash==0)flash=1;
+                  else flash=0;                  
                   break;
                case 0x02:  //3
+                  if(delay_cnt<67&&flash==1)delay_cnt++;
                   break;
                case 0x98:  //4
+                  if(delay_cnt>2&&flash==1)delay_cnt--;
                   break;
                case 0xE0:   //5
+                  //SCB->AIRCR=0x05FA0000|SCB_AIRCR_SYSRESETREQ_Msk;//软件复位
+                  NVIC_SystemReset();
                   break;
                case 0x90:   //6
                   break;     				 				  				   				 								   				  				
@@ -182,42 +186,28 @@ int main(void)
       
       if(light==1)
       {
-			SET_LED2;
-			CLR_SET_LED2_BIT;
+         if(flash==0)
+			{
+            SET_LED2;
+            CLR_SET_LED2_BIT;
+         }
+         else
+         {
+            delay(delay_cnt);
+            GPIOA->ODR ^= GPIO_ODR_5;
+         }
       }
       else
       {
 			RESET_LED2;
 			CLR_RESET_LED2_BIT;
       }
-	 #endif
 	}
 }
 
-
-void TIM15_IRQHandler(void)
+void IRdecode(uint16_t wholePulseLength, uint16_t  lowPulseLength)
 {
-	if(TIM15->SR & TIM_SR_UIF)
-	{
-		TIM15->SR &= ~TIM_SR_UIF;
-		time_15ms++;
-		if(time_15ms>=67)
-		{
-			time_15ms=0;
-			time_1s++;
-		}
-      
-      IRrxd_start=0;
-      IRrxd_byte_cnt=0;
-      IRrxd_bit_cnt=0;
-      IRrxd_bit_level=255;      
-	}
-	if(TIM15->SR & TIM_SR_CC1IF)//下降沿，周期
-   {
-      //lowPulseLength=TIM15->CCR2;//低电平宽度
-      wholePulseLength=TIM15->CCR1;
-      //TIM15->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
-      if(IRrxd_start==0 && gap==1)
+      if(IRrxd_start==0)
       {
          if(lowPulseLength>=28000&&lowPulseLength<=40000)//低电平范围7~10ms，in 4MHz；
          {
@@ -245,7 +235,7 @@ void TIM15_IRQHandler(void)
             }
          }
       }
-      else if(gap==1)
+      else
       {
          //接收逻辑位
          if(lowPulseLength>=1600&&lowPulseLength<=3200)//低电平范围0.4~0.8ms，in 4MHz；
@@ -309,15 +299,41 @@ void TIM15_IRQHandler(void)
                IRrxd_start=0;
                IRrxd_byte_cnt=0;
                IRrxd_bit_cnt=0;
-               IRrxd_bit_level=255;               
+               IRrxd_bit_level=255;   
             }            
          }
       }
+}
+
+void TIM15_IRQHandler(void)
+{
+   uint16_t wholePulseLength,lowPulseLength;
+	/*if(TIM15->SR & TIM_SR_UIF)
+	{
+		TIM15->SR &= ~TIM_SR_UIF;
+		time_15ms++;
+		if(time_15ms>=67)
+		{
+			time_15ms=0;
+			time_1s++;
+		}
+      
+      IRrxd_start=0;
+      IRrxd_byte_cnt=0;
+      IRrxd_bit_cnt=0;
+      IRrxd_bit_level=255;      
+	}*/
+	//if(TIM15->SR & TIM_SR_CC1IF)//下降沿，周期
+   {
+      lowPulseLength=TIM15->CCR2;//低电平宽度
+      wholePulseLength=TIM15->CCR1;      
+      //TIM15->SR &= ~(TIM_SR_CC1IF | TIM_SR_CC2IF);
+      if(gap==1)IRdecode(wholePulseLength, lowPulseLength);
       gap=1;
    }
-   if(TIM15->SR & TIM_SR_CC2IF)//上升沿，低电平宽度
+   /*if(TIM15->SR & TIM_SR_CC2IF)//上升沿，低电平宽度
    {
       lowPulseLength=TIM15->CCR2;
       TIM15->SR &= ~TIM_SR_CC2IF;
-   } 
+   } */
 }
