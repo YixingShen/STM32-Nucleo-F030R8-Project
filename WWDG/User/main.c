@@ -44,13 +44,63 @@ void USER_BUTTON_as_EXTI(void)
 	NVIC_EnableIRQ(EXTI4_15_IRQn);//__NVIC_EnableIRQ(EXTI4_15_IRQn);
 }
 
-void WWDG_init(void)
+
+void WWDG_init(uint16_t prescaler, uint8_t window, uint8_t counter)
 {
+   /*****************************************
+      prescaler=0   div1
+                1   div2
+                2   div4
+                3   div8
    
+      window 要小于0x7F，大于0x40，即127和64之间
+      counter 要小等于0x7F，大于0x40，即127和64之间，并且要大于window
+   *****************************************/
+   
+   //PCLK=HSI=8MHz
+   WWDG->CR = counter;//0x6B;//WWDG counter value=107, WWDG timeout = 1.024ms * 44= 45.056ms
+   WWDG->CFR = window;//0x4B;//WWDG window value=75, 计数器的值小于75大于64时才能重载计数器而不会复位
+   WWDG->CFR |= prescaler<<7;//WWDG_CFR_WDGTB_0;//WWDG clock counter=8MHz/4096/2=976.5625Hz (1.024ms)
+   /*In this case the refresh window is comprised between : 1.024ms * (107-75) = 32.768ms and 1.024ms * 44 = 45.056ms */
+   
+   WWDG->CR |= WWDG_CR_WDGA;//启动计数器
+}
+
+/**
+  * @brief  Timeout calculation function.
+  *         This function calculates any timeout related to 
+  *         WWDG with given prescaler and system clock.
+  * @param  timevalue: period in term of WWDG counter cycle.
+  * @retval None
+  */
+static uint32_t TimeoutCalculation(uint8_t prescaler, uint32_t timevalue)
+{
+  uint32_t timeoutvalue = 0;
+  uint32_t pclk1 = 0;
+  uint32_t wdgtb = 0;
+
+  /* considering APB divider is still 1, use HCLK value */
+  pclk1 = 8000000;
+
+  /* get prescaler */
+  wdgtb = (1 << prescaler); /* 2^WDGTB[1:0] */
+
+  /* calculate timeout */
+  timeoutvalue = ((4096 * wdgtb * timevalue) / (pclk1 / 1000));
+
+  return timeoutvalue;
+}
+
+void Refresh_WWDG(uint8_t counter)
+{
+   WWDG->CR |= counter;
 }
 
 int main(void)
 {
+   uint32_t dly;
+   
+   
    /*Configure the SysTick to have interrupt in 1ms time basis*/
    SysTick_Config(8000);//使用HSI=8MHz作为系统时钟
    
@@ -81,11 +131,21 @@ int main(void)
    /* Configure User push-button */
    USER_BUTTON_as_EXTI();
    
+   /*In this case the refresh window is comprised between : 1.024ms * (107-75) = 32.768ms and 1.024ms * 44 = 45.056ms */
+   WWDG_init(1, 75, 107);
+   
+   /* calculate delay to enter window. Add 1ms to secure round number to upper number  */
+   dly = TimeoutCalculation(1, (107-75) + 1) + 1;
+   
 	while(1)
 	{
 		//GPIOA->ODR = ~GPIO_ODR_5;
       GPIOA->ODR ^= GPIO_ODR_5;
-		delay(1000);//1s
+      
+      /* Insert calculated delay */
+		delay(dly);
+      
+      Refresh_WWDG(107);
 	}
 }
 
