@@ -1,3 +1,9 @@
+/***************************************************************************************
+利用SysTick作为时基，正常情况下，LED以WWDG重载值和窗口值之间的差值为间隔闪烁；
+当按下按键时，进入外部中断服务程序，且不会退出，直到WWDG复位；
+判断是否因WWDG复位，如果是，LED点亮4s。
+****************************************************************************************/
+
 #include "main.h"
 
 __IO uint32_t uwTick;
@@ -47,7 +53,7 @@ void USER_BUTTON_as_EXTI(void)
 
 void WWDG_init(uint16_t prescaler, uint8_t window, uint8_t counter)
 {
-   /*****************************************
+   /***************************************************************************************************************************
       prescaler=0   div1
                 1   div2
                 2   div4
@@ -55,7 +61,13 @@ void WWDG_init(uint16_t prescaler, uint8_t window, uint8_t counter)
    
       window 要小于0x7F，大于0x40，即127和64之间
       counter 要小等于0x7F，大于0x40，即127和64之间，并且要大于window
-   *****************************************/
+   
+   0x7f(counter)-----------------------------window-------------------------------------------------0x40-0x3f
+                 |期间重载计数器产生复位            |窗口期内以一定的间隔不断重载计数器避免复位          |超时产生复位
+   ********************************************************************************************************************************/
+   
+   /* WWDG Peripheral clock enable */
+   RCC->APB1ENR |= RCC_APB1ENR_WWDGEN;
    
    //PCLK=HSI=8MHz
    WWDG->CR = counter;//0x6B;//WWDG counter value=107, WWDG timeout = 1.024ms * 44= 45.056ms
@@ -64,6 +76,9 @@ void WWDG_init(uint16_t prescaler, uint8_t window, uint8_t counter)
    /*In this case the refresh window is comprised between : 1.024ms * (107-75) = 32.768ms and 1.024ms * 44 = 45.056ms */
    
    WWDG->CR |= WWDG_CR_WDGA;//启动计数器
+   
+   //WWDG->CR = WWDG_CR_WDGA | counter;
+   //WWDG->CFR = (prescaler<<7) | window;
 }
 
 /**
@@ -95,6 +110,7 @@ void Refresh_WWDG(uint8_t counter)
 {
    WWDG->CR |= counter;
 }
+
 
 int main(void)
 {
@@ -165,7 +181,7 @@ void EXTI4_15_IRQHandler(void)
    /* As the following address is invalid (not mapped), a Hardfault exception
    will be generated with an infinite loop and when the WWDG counter falls to 63
    the WWDG reset occurs */   
-   *(__IO uint32_t *) 0xA0003000 = 0xFF;
+   *(__IO uint32_t *) 0xA0003000 = 0xFF;//什么都不做也可以
 	//if((EXTI->PR&EXTI_PR_PR13) != 0) //PIF13=1 EXTI13中断
 	//{
 		//CLEAR PIF13
