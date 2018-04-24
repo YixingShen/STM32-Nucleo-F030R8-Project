@@ -113,12 +113,13 @@ void RTC_Interrupt_Configuration(void)
 
 void RTC_Clock_Configuration(void)
 {
-   RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-   
    /* Allow access to RTC */
+   
+   RCC->APB1ENR |= RCC_APB1ENR_PWREN;//使能电源接口时钟
+   
    /* Allow access to Backup */
    /* Enable the Backup Domain Access */
-   PWR->CR |= PWR_CR_DBP;   
+   PWR->CR |= PWR_CR_DBP;//使能对RCC_BDCR,RTC寄存器（包括备份寄存器）的访问
    
    /* Reset RTC Domain */
    RCC->BDCR |= RCC_BDCR_BDRST;
