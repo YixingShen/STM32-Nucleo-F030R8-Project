@@ -163,6 +163,37 @@ void RTC_Config(void)
    RTC_Interrupt_Configuration();
 }
 
+/**
+  * @brief  Converts a 2 digit decimal to BCD format.
+  * @param  Value: Byte to be converted.
+  * @retval Converted byte
+  */
+#if 0
+static uint8_t RTC_ByteToBcd2(uint8_t Value)
+{
+  uint8_t bcdhigh = 0;
+  
+  while (Value >= 10)
+  {
+    bcdhigh++;
+    Value -= 10;
+  }
+  
+  return  ((uint8_t)(bcdhigh << 4) | Value);
+}
+#endif
+/**
+  * @brief  Convert from 2 digit BCD to Binary.
+  * @param  Value: BCD value to be converted.
+  * @retval Converted word
+  */
+static uint8_t RTC_Bcd2ToByte(uint8_t Value)
+{
+  uint8_t tmp = 0;
+  tmp = ((uint8_t)(Value & (uint8_t)0xF0) >> (uint8_t)0x4) * 10;
+  return (tmp + (Value & (uint8_t)0x0F));
+}
+
 RTC_TimeTypeDef RTC_GetTime(void)
 {
    uint32_t tmp32;
@@ -174,6 +205,10 @@ RTC_TimeTypeDef RTC_GetTime(void)
    RTC_Time.RTC_Minutes = (uint8_t)((tmp32 & (RTC_TR_MNT | RTC_TR_MNU)) >> 8);
    RTC_Time.RTC_Seconds = (uint8_t)(tmp32 & (RTC_TR_ST | RTC_TR_SU));
    RTC_Time.RTC_H12 = (uint8_t)(tmp32 & RTC_TR_PM) >> 22;
+
+   RTC_Time.RTC_Hours = RTC_Bcd2ToByte(RTC_Time.RTC_Hours);
+   RTC_Time.RTC_Minutes = RTC_Bcd2ToByte(RTC_Time.RTC_Minutes);
+   RTC_Time.RTC_Seconds = RTC_Bcd2ToByte(RTC_Time.RTC_Seconds);
    
    return RTC_Time;
 }
@@ -189,6 +224,12 @@ RTC_DateTypeDef RTC_GetDate(void)
    RTC_Date.RTC_Month = (uint8_t)((tmp32 & (RTC_DR_MT | RTC_DR_MU)) >> 8);
    RTC_Date.RTC_Date = (uint8_t)(tmp32 & (RTC_DR_DT | RTC_DR_DU));
    RTC_Date.RTC_WeekDay = (uint8_t)(tmp32 & RTC_DR_WDU) >> 13;
+
+
+   RTC_Date.RTC_Year = RTC_Bcd2ToByte(RTC_Date.RTC_Year);
+   RTC_Date.RTC_Month = RTC_Bcd2ToByte(RTC_Date.RTC_Month);
+   RTC_Date.RTC_Date = RTC_Bcd2ToByte(RTC_Date.RTC_Date);
+   RTC_Date.RTC_WeekDay = RTC_Bcd2ToByte(RTC_Date.RTC_WeekDay);
    
    return RTC_Date;
 }
