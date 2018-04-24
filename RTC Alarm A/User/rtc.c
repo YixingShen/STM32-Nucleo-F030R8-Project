@@ -1,4 +1,4 @@
-#include "stm32f0xx.h"
+#include "rtc.h"
 
 void Disable_Write_protection(void)
 {
@@ -163,6 +163,35 @@ void RTC_Config(void)
    RTC_Interrupt_Configuration();
 }
 
+RTC_TimeTypeDef RTC_GetTime(void)
+{
+   uint32_t tmp32;
+   RTC_TimeTypeDef RTC_Time;
+   
+   tmp32= RTC->TR & 0x007F7F7F;
+   
+   RTC_Time.RTC_Hours = (uint8_t)((tmp32 & (RTC_TR_HT | RTC_TR_HU)) >> 16);
+   RTC_Time.RTC_Minutes = (uint8_t)((tmp32 & (RTC_TR_MNT | RTC_TR_MNU)) >> 8);
+   RTC_Time.RTC_Seconds = (uint8_t)(tmp32 & (RTC_TR_ST | RTC_TR_SU));
+   RTC_Time.RTC_H12 = (uint8_t)(tmp32 & RTC_TR_PM) >> 22;
+   
+   return RTC_Time;
+}
+
+RTC_DateTypeDef RTC_GetDate(void)
+{
+   uint32_t tmp32;
+   RTC_DateTypeDef RTC_Date;
+   
+   tmp32= RTC->DR & 0x00FFFF3F;
+   
+   RTC_Date.RTC_Year = (uint8_t)((tmp32 & (RTC_DR_YT | RTC_DR_YU)) >> 16);
+   RTC_Date.RTC_Month = (uint8_t)((tmp32 & (RTC_DR_MT | RTC_DR_MU)) >> 8);
+   RTC_Date.RTC_Date = (uint8_t)(tmp32 & (RTC_DR_DT | RTC_DR_DU));
+   RTC_Date.RTC_WeekDay = (uint8_t)(tmp32 & RTC_DR_WDU) >> 13;
+   
+   return RTC_Date;
+}
 
 
 void RTC_IRQHandler(void)
