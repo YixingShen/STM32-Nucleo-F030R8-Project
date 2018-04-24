@@ -43,6 +43,8 @@ void Wait_registers_Synchronization(void)
 
 void Calendar_Configuration(void)
 {
+   uint32_t rtc_date,rtc_time;
+   
    /* Check if the Initialization mode is set */
    if ((RTC->ISR & RTC_ISR_INITF) == 0)
    {
@@ -56,16 +58,18 @@ void Calendar_Configuration(void)
    RTC->PRER = 0x7F<<16;//Asynchronous prescaler factor
    RTC->PRER |= 0x137;/* (40KHz / 128) - 1 = 0x137*///Synchronous prescaler factor
 
-   /* Set the date: 2018.4.22.SUNDAY */
-   RTC->DR = (uint32_t)(0x18)<<16;//year
-   RTC->DR |= (uint32_t)(0x04)<<8;//month
-   RTC->DR |= (uint32_t)(0x22);//date
-   RTC->DR |= (uint32_t)(0x07)<<13;//weekday
+   /* Set the date: 2018.4.24.Tuesday*/
+   rtc_date = (uint32_t)(0x18)<<16;//year
+   rtc_date |= (uint32_t)(0x04)<<8;//month
+   rtc_date |= (uint32_t)(0x24);//date
+   rtc_date |= (uint32_t)(0x02)<<13;//weekday
+   RTC->DR = rtc_date;//
 
    /* Set the time to 01h 00mn 00s AM */
-   RTC->TR = (uint32_t)(0x01)<<16;//hour
-   RTC->TR |= (uint32_t)(0x00)<<8;//minute
-   RTC->TR |= (uint32_t)(0x04);//second
+   rtc_time = (uint32_t)(0x22)<<16;//hour
+   rtc_time |= (uint32_t)(0x38)<<8;//minute
+   rtc_time |= (uint32_t)(0x00);//second
+   RTC->TR = rtc_time;
    
    Exit_Init_mode();
    Wait_registers_Synchronization();
@@ -73,12 +77,22 @@ void Calendar_Configuration(void)
 
 void Alarm_A_Configure(void)
 {
+   uint32_t alarm_time,alarm_sub_second;
+   
    /* Set the alarm 01h:00min:04s */ 
    /* Configure the Alarm register */
-   RTC->ALRMAR = RTC_ALRMAR_MSK4 | RTC_ALRMAR_WDSEL | ((uint32_t)(0x31)<<24);//date
-   RTC->ALRMAR |= RTC_ALRMAR_MSK3 | ((uint32_t)(0x01)<<16);//hour
-   RTC->ALRMAR |= RTC_ALRMAR_MSK2 | ((uint32_t)(0x00)<<8);//minute
-   RTC->ALRMAR |= RTC_ALRMAR_MSK1 | (uint32_t)(0x04);//second 
+   alarm_time = ((uint32_t)(0x24)<<24);//date
+   alarm_time |= ((uint32_t)(0x22)<<16);//hour
+   alarm_time |= ((uint32_t)(0x38)<<8);//minute
+   alarm_time |= (uint32_t)(0x04);//second
+   RTC->ALRMAR = RTC_ALRMAR_MSK4 
+               | RTC_ALRMAR_MSK3 
+               | RTC_ALRMAR_MSK2 
+               | RTC_ALRMAR_MSK1 
+               | alarm_time; 
+   
+   alarm_sub_second = 39;//Synchronous prescaler factor = 0x137=311, 311/8=39~0.125s
+   RTC->ALRMASSR = ((uint32_t)6<<24) | alarm_sub_second;
    
    //Enable Alarm A interrupt
    RTC->CR |= RTC_CR_ALRAIE;
