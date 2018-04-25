@@ -97,6 +97,13 @@ void Alarm_A_Configure(void)
    //Enable Alarm A interrupt
    RTC->CR |= RTC_CR_ALRAIE;
    
+   //Alarm A output enabled
+   RTC->CR |= RTC_CR_OSEL_0;
+   //when ALRAF asserted out low
+   RTC->CR |= RTC_CR_POL;
+   //RTC_ALARM is a push-pull output
+   RTC->TAFCR |= RTC_TAFCR_PC13VALUE;
+   
    /* Enable the alarm */
    RTC->CR |= RTC_CR_ALRAE;   
 }
