@@ -1,9 +1,0 @@
---cpu Cortex-M0
-".\outputs\main.o"
-".\outputs\flash_as_eeprom.o"
-".\outputs\startup_stm32f030x8.o"
-".\outputs\system_stm32f0xx.o"
---library_type=microlib --strict --scatter ".\Outputs\gpio.sct"
---summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
---info sizes --info totals --info unused --info veneers
---list ".\Listings\gpio.map" -o .\Outputs\gpio.axf
