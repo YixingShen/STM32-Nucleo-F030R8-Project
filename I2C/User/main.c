@@ -38,6 +38,11 @@ int main(void)
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR6 | GPIO_OSPEEDR_OSPEEDR7;//PB6 PB7高速
 	GPIOB->OTYPER |= GPIO_OTYPER_OT_6 | GPIO_OTYPER_OT_7;//PB6 PB7开漏输出
 	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR6_0 | GPIO_PUPDR_PUPDR7_0;//PB6 PB7上拉
+   
+   //复位I2C1
+   RCC->APB1RSTR |= RCC_APB1RSTR_I2C1RST;
+   RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C1RST;
+   
 	
 	/* Disable the selected I2C peripheral */
 	I2C1->CR1 &= ~I2C_CR1_PE;//先关闭I2C1
@@ -56,17 +61,17 @@ int main(void)
 	//I2C1->OAR1 = I2C_OAR1_OA1EN | I2C_ADDRESS&(0x0fe);
 	
 	/*---------------------------- I2C1 CR2 Configuration ----------------------*/
-  /* Configure I2C1: Addressing Master mode */
+   /* Configure I2C1: Addressing Master mode */
 	/* I2C_ADDRESSINGMODE_10BIT */
-	I2C1->CR2 = I2C_CR2_ADD10;
-  /* Enable the AUTOEND by default, and enable NACK (should be disable only during Slave process */
-  I2C1->CR2 |= (I2C_CR2_AUTOEND | I2C_CR2_NACK);
+	//I2C1->CR2 = I2C_CR2_ADD10;
+   /* Enable the AUTOEND by default, and enable NACK (should be disable only during Slave process */
+   I2C1->CR2 |= (I2C_CR2_AUTOEND | I2C_CR2_NACK);
 	
 	/*---------------------------- I2C1 OAR2 Configuration ---------------------*/
-  /* Disable Own Address2 before set the Own Address2 configuration */
+   /* Disable Own Address2 before set the Own Address2 configuration */
 	I2C1->OAR2 &= ~I2C_OAR2_OA2EN;
-  /* Configure I2C1: Dual mode and Own Address2 */
-  //I2C1->OAR2 = (I2C_OAR2_OA2EN | I2C_ADDRESS_2 | (I2C_ADDRESS_2_MSK << 8));	
+   /* Configure I2C1: Dual mode and Own Address2 */
+   //I2C1->OAR2 = (I2C_OAR2_OA2EN | I2C_ADDRESS_2 | (I2C_ADDRESS_2_MSK << 8));	
 	
   /*---------------------------- I2C1 CR1 Configuration ----------------------*/
   /* Configure I2C1: Generalcall and NoStretch mode */
@@ -80,7 +85,9 @@ int main(void)
 
 	/*##-1- Start the transmission process #####################################*/  
 	/* Timeout is set to 10S */
-	
+	/* Send Slave Address */
+   I2C1->CR2 = I2C_SLAVE_ADDRESS | I2C_NBYTES<<16 | I2C_CR2_AUTOEND | I2C_CR2_START;
+   
 	
 	while(1)
 	{

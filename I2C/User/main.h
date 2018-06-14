@@ -4,6 +4,10 @@
 #define I2C_ADDRESS_2      0xFE
 #define I2C_ADDRESS_2_MSK  0//0-7
 
+#define I2C_SLAVE_ADDRESS  0xA0
+
+#define I2C_NBYTES  2
+
 /* I2C TIMING Register define when I2C clock source is SYSCLK */
 /* I2C TIMING is calculated in case of the I2C Clock source is the SYSCLK = 48 MHz */
 /* This example use TIMING to 0x00A51314 to reach 1 MHz speed (Rise time = 100 ns, Fall time = 100 ns) */
