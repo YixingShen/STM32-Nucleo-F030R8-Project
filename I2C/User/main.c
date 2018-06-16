@@ -32,6 +32,12 @@ void I2C_peripheral_init(void)
    RCC->APB1RSTR |= RCC_APB1RSTR_I2C1RST;
    RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C1RST;   
    
+	/* Configure NVIC for I2C1 Interrupt */
+	//set I2C1 Interrupt to the lowest priority
+	NVIC_SetPriority(I2C1_IRQn, 0);
+	//Enable Interrupt on I2C1
+	NVIC_EnableIRQ(I2C1_IRQn);   
+   
 	/* Disable the selected I2C peripheral */
 	I2C1->CR1 &= ~I2C_CR1_PE;//先关闭I2C1
 }
@@ -42,9 +48,14 @@ void I2C_registers_Configuration(void)
    /* (1) Timing register value is computed with the AN4235 xls file, fast Mode @400kHz with I2CCLK = 48MHz, rise time = 140ns, fall time = 40ns */
    /* (2) Periph enable */
    /* (3) Slave address = 0xA0, write transfer, 1 byte to transmit, autoend */
-   I2C2->TIMINGR = (uint32_t)0x00B01A4B; /* (1) */
-   I2C2->CR1 = I2C_CR1_PE; /* (2) */
-   I2C2->CR2 = I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */   
+   I2C1->TIMINGR = (uint32_t)0x00B01A4B; /* (1) */
+   I2C1->CR1 = I2C_CR1_PE; /* (2) */
+   I2C1->CR2 = I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */   
+   
+   /* Enable interrupts */
+   I2C1->CR1 |= I2C_CR1_ERRIE | I2C_CR1_TCIE | I2C_CR1_STOPIE | I2C_CR1_NACKIE 
+              | I2C_CR1_ADDRIE | I2C_CR1_RXIE | I2C_CR1_TXIE;
+   
 }
 
 int main(void)
@@ -63,49 +74,8 @@ int main(void)
 	//I2C1_SCL-PB6; I2C1_SDA-PB7
 	I2C_peripheral_init();//I2C外设初始化：gpio clock等设置
    
-
-	
-	/*---------------------------- I2Cx TIMINGR Configuration ------------------*/
-  /* Configure I2Cx: Frequency range */
-	I2C1->TIMINGR = I2C_TIMING;
-	
-  /*---------------------------- I2C1 OAR1 Configuration ---------------------*/
-  /* Disable Own Address1 before set the Own Address1 configuration */
-  I2C1->OAR1 &= ~I2C_OAR1_OA1EN;
-	/* Configure I2C1: Own Address1 and ack own address1 mode */
-	/* I2C_ADDRESSINGMODE_10BIT */
-	I2C1->OAR1 = I2C_OAR1_OA1EN | I2C_OAR1_OA1MODE | I2C_ADDRESS;
-	/* I2C_ADDRESSINGMODE_7BIT */
-	//I2C1->OAR1 = I2C_OAR1_OA1EN | I2C_ADDRESS&(0x0fe);
-	
-	/*---------------------------- I2C1 CR2 Configuration ----------------------*/
-   /* Configure I2C1: Addressing Master mode */
-	/* I2C_ADDRESSINGMODE_10BIT */
-	//I2C1->CR2 = I2C_CR2_ADD10;
-   /* Enable the AUTOEND by default, and enable NACK (should be disable only during Slave process */
-   I2C1->CR2 |= (I2C_CR2_AUTOEND | I2C_CR2_NACK);
-	
-	/*---------------------------- I2C1 OAR2 Configuration ---------------------*/
-   /* Disable Own Address2 before set the Own Address2 configuration */
-	I2C1->OAR2 &= ~I2C_OAR2_OA2EN;
-   /* Configure I2C1: Dual mode and Own Address2 */
-   //I2C1->OAR2 = (I2C_OAR2_OA2EN | I2C_ADDRESS_2 | (I2C_ADDRESS_2_MSK << 8));	
-	
-  /*---------------------------- I2C1 CR1 Configuration ----------------------*/
-  /* Configure I2C1: Generalcall and NoStretch mode */
-  I2C1->CR1 &= ~(I2C_CR1_GCEN | I2C_CR1_NOSTRETCH);
-	/* Enable the Analog I2C Filter */
-	/* Reset I2C1 ANOFF bit */
-	I2C1->CR1 &= ~(I2C_CR1_ANFOFF);	
-		
-  /* Enable the selected I2C peripheral */
-  I2C1->CR1 |= I2C_CR1_PE;	
-
-	/*##-1- Start the transmission process #####################################*/  
-	/* Timeout is set to 10S */
-	/* Send Slave Address */
-   I2C1->CR2 = I2C_SLAVE_ADDRESS | I2C_NBYTES<<16 | I2C_CR2_AUTOEND | I2C_CR2_START;
-   
+   /*---------------------------- I2C1 Configuration ----------------------*/
+   I2C_registers_Configuration();
 	
 	while(1)
 	{
@@ -127,4 +97,37 @@ int main(void)
 void SysTick_Handler(void)
 {
    uwTick++;
+}
+
+
+
+void I2C1_IRQHandler(void)
+{
+   //ERRIE
+   if(I2C1->ISR & I2C_ISR_ALERT)
+   {
+      I2C1->ICR |= I2C_ICR_ALERTCF;
+   }
+   if(I2C1->ISR & I2C_ISR_TIMEOUT)
+   {
+      I2C1->ICR |= I2C_ICR_TIMOUTCF;
+   }   
+   if(I2C1->ISR & I2C_ISR_PECERR)
+   {
+      I2C1->ICR |= I2C_ICR_PECCF;
+   }   
+   if(I2C1->ISR & I2C_ISR_OVR)
+   {
+      I2C1->ICR |= I2C_ICR_OVRCF;
+   }   
+   if(I2C1->ISR & I2C_ISR_ARLO)
+   {
+      I2C1->ICR |= I2C_ICR_ARLOCF;
+   }   
+   if(I2C1->ISR & I2C_ISR_BERR)
+   {
+      I2C1->ICR |= I2C_ICR_BERRCF;
+   }   
+   
+   //
 }
