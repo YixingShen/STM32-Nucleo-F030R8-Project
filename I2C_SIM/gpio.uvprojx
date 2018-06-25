@@ -386,6 +386,16 @@
               <FileType>1</FileType>
               <FilePath>.\User\main.c</FilePath>
             </File>
+            <File>
+              <FileName>i2cbus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\i2cbus.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2cbus.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\User\i2cbus.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

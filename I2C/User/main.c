@@ -1,7 +1,7 @@
 #include "main.h"
 
 __IO uint32_t uwTick;
-uint8_t flag_step,rx[3],cnt;
+uint8_t flag_step,rx[3],rx_cnt,tx_cnt;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -45,7 +45,7 @@ void I2C_peripheral_init(void)
    //I2C configured in master mode to transmit code
    /* (1) Timing register value is computed with the AN4235 xls file, fast Mode @400kHz with I2CCLK = 48MHz, rise time = 140ns, fall time = 40ns */
    /* (2) Periph enable */
-   I2C1->TIMINGR = (uint32_t)0x00B01A4B; /* (1) */
+   I2C1->TIMINGR = (uint32_t)0x4000C6C7;//0x00B01A4B; /* (1) */
    I2C1->CR1 = I2C_CR1_PE; /* (2) */
 
    /* Enable interrupts */
@@ -57,12 +57,13 @@ void I2C_registers_Configuration(uint8_t step)
 {
    //I2C configured in master mode to transmit code
    /* (3) Slave address = 0x5A, write transfer, 1 byte to transmit, autoend */
-   if(step==0)I2C1->CR2 = I2C_CR2_RELOAD | (1 << 16) | 0xA0; //I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */   
+   if(step==0)I2C1->CR2 = (1 << 16) | 0xA0; //I2C_CR2_RELOAD | (1 << 16) | 0xA0; //I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */   
    
    //I2C configured in master mode to receive code example
    /* (3) Slave address = 0x5A, read transfer, 1 byte to receive, autoend */
-   else if(step==1)I2C2->CR2 = I2C_CR2_AUTOEND | (3<<16) | I2C_CR2_RD_WRN | 0xA1; //I2C_CR2_RELOAD | (3<<16) | I2C_CR2_RD_WRN | 0xA1; /* (3) */
-   
+   else if(step==1)I2C2->CR2 = (3<<16) | I2C_CR2_RD_WRN | 0xA1; //I2C_CR2_AUTOEND | (3<<16) | I2C_CR2_RD_WRN | 0xA1; //I2C_CR2_RELOAD | (3<<16) | I2C_CR2_RD_WRN | 0xA1; /* (3) */
+
+	I2C1->CR2 |= I2C_CR2_START;
 }
 
 int main(void)
@@ -83,20 +84,18 @@ int main(void)
    
    /*---------------------------- I2C1 Configuration ----------------------*/
    flag_step=0;
-	cnt=0;
-   //I2C_registers_Configuration(flag_step);
+	 rx_cnt=0;
+	 tx_cnt=0;
+   I2C_registers_Configuration(flag_step);
    
 	while(1)
 	{
-			GPIOA->ODR ^= GPIO_ODR_5;
-			delay(1000);
-			//SET_LED2;
-			//CLR_SET_LED2_BIT;
-
-			//RESET_LED2;
-			//CLR_RESET_LED2_BIT;
+			//GPIOA->ODR ^= GPIO_ODR_5;
+			GPIOA->ODR &= ~GPIO_ODR_5;
+			if(rx[0]!=0||rx[1]!=0)GPIOA->ODR = GPIO_ODR_5;
       
-      I2C_registers_Configuration(flag_step);
+      //I2C_registers_Configuration(flag_step);
+		  delay(1000);
 	}
 }
 
@@ -148,8 +147,11 @@ void I2C1_IRQHandler(void)
    //Check Tx empty
    if(I2C1->ISR & I2C_ISR_TXE)
    {
-      I2C1->TXDR = 0x08;
-      I2C1->CR2 |= I2C_CR2_START;
+			if(flag_step==0)
+			{
+					I2C1->TXDR = 0x08;
+			}	
+      //I2C1->CR2 |= I2C_CR2_START;
    }
    //传输完成
    if(I2C1->ISR & I2C_ISR_TCR)
@@ -158,24 +160,44 @@ void I2C1_IRQHandler(void)
       if(flag_step==0)
       {
          flag_step=1;
-         I2C1->CR2 |= (3 << 16);
-         //I2C_registers_Configuration(flag_step);
+         //I2C1->CR2 |= (3 << 16);
+         I2C_registers_Configuration(flag_step);
       }
       else 
       {
          //I2C1->CR2 |= I2C_CR2_STOP;
          flag_step=0;
-         I2C1->CR2 |= (1 << 16); 
-         //I2C_registers_Configuration(flag_step);
+         //I2C1->CR2 |= (1 << 16); 
+         I2C_registers_Configuration(flag_step);
       }
-      cnt=0;
+      rx_cnt=0;
    }
-   
+   //传输完成
+   if(I2C1->ISR & I2C_ISR_TC)
+   {
+      I2C1->CR2 &= ~I2C_CR2_START;
+      if(flag_step==0)
+      {
+         flag_step=1;
+         //I2C1->CR2 |= (3 << 16);
+				 //delay(1);
+         I2C_registers_Configuration(flag_step);
+      }
+      else 
+      {
+         I2C1->CR2 |= I2C_CR2_STOP;
+         flag_step=0;
+         //I2C1->CR2 |= (1 << 16); 
+				 delay(1);
+         I2C_registers_Configuration(flag_step);
+      }
+      rx_cnt=0;
+   }   
    //I2C master receiver code
    if(I2C1->ISR & I2C_ISR_RXNE)
    {
-      rx[cnt]=I2C1->RXDR;
-      cnt++;
+      rx[rx_cnt]=I2C1->RXDR;
+      rx_cnt++;
       //if(cnt==3) I2C1->CR2 |= I2C_CR2_STOP;
    }
    
