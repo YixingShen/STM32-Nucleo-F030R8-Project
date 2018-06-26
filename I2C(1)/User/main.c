@@ -1,7 +1,7 @@
 #include "main.h"
 
 __IO uint32_t uwTick;
-uint8_t rx[3],rx_cnt;
+uint8_t rx[4],rx_cnt;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -51,27 +51,14 @@ void I2C_peripheral_init(void)
    /* Enable interrupts */
    //I2C1->CR1 |= I2C_CR1_ERRIE | I2C_CR1_TCIE | I2C_CR1_STOPIE | I2C_CR1_NACKIE 
    //           | I2C_CR1_ADDRIE | I2C_CR1_RXIE | I2C_CR1_TXIE;  
-   I2C1->CR1 |= I2C_CR1_TCIE | I2C_CR1_RXIE | I2C_CR1_TXIE;   
+   I2C1->CR1 |= I2C_CR1_RXIE;
 }
 
-void I2C_transfer_registers_Configuration(void)
+void I2C_registers_Configuration(void)
 {
-	I2C1->CR2 &= ~I2C_CR2_START;
-	
-	//I2C configured in master mode to transmit code
-	/* (3) Slave address = 0x5A, write transfer, 1 byte to transmit, autoend */
-	I2C1->CR2 = (1 << 16) | 0xA0; //I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */  //I2C_CR2_RELOAD 
-   
-	I2C1->CR2 |= I2C_CR2_START;
-}
-
-void I2C_receive_registers_Configuration(void)
-{
-	I2C1->CR2 &= ~I2C_CR2_START;
-	
 	//I2C configured in master mode to receive code example
 	/* (3) Slave address = 0x5A, read transfer, 1 byte to receive, autoend */
-	I2C1->CR2 = I2C_CR2_AUTOEND | (3 << 16) | 0xA1 | I2C_CR2_RD_WRN; /* (3) */
+	I2C1->CR2 = I2C_CR2_AUTOEND | (4 << 16) | 0xA1 | I2C_CR2_RD_WRN; /* (3) */
 
 	I2C1->CR2 |= I2C_CR2_START;
 }
@@ -92,17 +79,18 @@ int main(void)
 	//I2C1_SCL-PB6; I2C1_SDA-PB7
 	I2C_peripheral_init();//I2C外设初始化：gpio clock等设置
    
+	/*---------------------------- I2C1 Configuration ----------------------*/
+	rx_cnt=0;
+	//I2C_registers_Configuration();
+   
 	while(1)
 	{
 			//GPIOA->ODR ^= GPIO_ODR_5;
 			GPIOA->ODR &= ~GPIO_ODR_5;
-			if(rx[0]!=0||rx[1]!=0)GPIOA->ODR = GPIO_ODR_5;
-			
-			//合泰触摸IC：BS83B12A-3
-		  /*---------------------------- I2C1 Configuration ----------------------*/
-      rx_cnt=0;
-      I2C_transfer_registers_Configuration();
-		
+			if(rx[0]!=0||rx[1]!=0||rx[2]!=0)GPIOA->ODR = GPIO_ODR_5;
+      
+			//合泰触摸IC：BS83C24-3
+      I2C_registers_Configuration();
 		  delay(20);
 	}
 }
@@ -152,7 +140,24 @@ void I2C1_IRQHandler(void)
    {
       I2C1->ICR |= I2C_ICR_ADDRCF;
    }
-
+   
+   //Check Tx empty
+   if(I2C1->ISR & I2C_ISR_TXE)
+   {
+			//I2C1->TXDR = 0x08;
+      //I2C1->CR2 |= I2C_CR2_START;
+   }
+   //传输完成
+   if(I2C1->ISR & I2C_ISR_TCR)
+   {
+      rx_cnt=0;
+   }
+   //传输完成
+   if(I2C1->ISR & I2C_ISR_TC)
+   {
+      rx_cnt=0;
+   }   
+	 
    //NACKIE
    if(I2C1->ISR & I2C_ISR_NACKF)
    {
@@ -162,36 +167,15 @@ void I2C1_IRQHandler(void)
    if(I2C1->ISR & I2C_ISR_STOPF)
    {
       I2C1->ICR |= I2C_ICR_STOPCF;
-   }  
-	 
-   //传输完成等待RELOAD
-   if(I2C1->ISR & I2C_ISR_TCR)
-   {
-      //I2C1->CR2 &= ~I2C_CR2_START;
-		  //I2C_receive_registers_Configuration();
-      rx_cnt=0;
-   }	 
-#endif
-   
-   //Check Tx empty
-   if(I2C1->ISR & I2C_ISR_TXE)
-   {
-			I2C1->TXDR = 0x08;
-      //I2C1->CR2 |= I2C_CR2_START;
-   }
-   //传输完成
-   if(I2C1->ISR & I2C_ISR_TC)
-   {
-		  I2C_receive_registers_Configuration();		 
-      rx_cnt=0;
-   }   
+   } 	 
+#endif	 
 	 
    //I2C master receiver code
    if(I2C1->ISR & I2C_ISR_RXNE)
    {
       rx[rx_cnt]=I2C1->RXDR;
       rx_cnt++;
-      if(rx_cnt>=3) rx_cnt=0;
-   }   
+      if(rx_cnt>=4) rx_cnt=0;
+   }
 }
 
