@@ -59,7 +59,7 @@ void I2C_transfer_registers_Configuration(void)
 	I2C1->CR2 &= ~I2C_CR2_START;
 	
 	//I2C configured in master mode to transmit code
-	/* (3) Slave address = 0x5A, write transfer, 1 byte to transmit, autoend */
+	/* (3) Slave address = 0xA0, write transfer, 1 byte to transmit, 软件结束 */
 	I2C1->CR2 = (1 << 16) | 0xA0; //I2C_CR2_AUTOEND | (1 << 16) | 0xA0; /* (3) */  //I2C_CR2_RELOAD 
    
 	I2C1->CR2 |= I2C_CR2_START;
@@ -70,7 +70,7 @@ void I2C_receive_registers_Configuration(void)
 	I2C1->CR2 &= ~I2C_CR2_START;
 	
 	//I2C configured in master mode to receive code example
-	/* (3) Slave address = 0x5A, read transfer, 1 byte to receive, autoend */
+	/* (3) Slave address = 0xA1, read transfer, 3 byte to receive, autoend */
 	I2C1->CR2 = I2C_CR2_AUTOEND | (3 << 16) | 0xA1 | I2C_CR2_RD_WRN; /* (3) */
 
 	I2C1->CR2 |= I2C_CR2_START;
