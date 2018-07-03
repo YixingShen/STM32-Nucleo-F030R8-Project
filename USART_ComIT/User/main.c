@@ -3,7 +3,7 @@
 #include <string.h>
 
 __IO uint32_t uwTick;
-uint8_t rx[10],rx_cnt,tx[10],tx_cnt,trans_recv,tx_size,flag_rx,led_light;
+uint8_t rx[10],rx_cnt,tx[10],tx_cnt,trans_recv,tx_size,flag_rx,led_light,tx_step;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -75,27 +75,28 @@ void commu(void)
    {
       trans_recv=1;
       
-      if(flag_rx==0)
+      if(tx_step<2)
       {
-         sprintf(tx,"Ready\r\n");
-      }
-      flag_rx=0;
-      tx_cnt=0;
-      rx_cnt=0;
-      tx_size=strlen(tx);
-      
-      USART1->CR1 |= USART_CR1_TE;
+         if(tx_step==0)sprintf(tx,"Ready\r\n");
+
+				 tx_size=strlen(tx);
+				 USART1->CR1 |= USART_CR1_TE;
+			}
+			else tx_size=0;
+			tx_step=2;
    }
    else//接收
    {
-      USART1->CR1 &= ~USART_CR1_TE;
-
-      trans_recv=0;
       if(flag_rx==1)
       {
+				 tx_step=1;
+				 flag_rx=0;
+				 trans_recv=0;
          if(strncmp(rx,"LED:ON",sizeof("LED:ON")-1)==0)led_light=1;
          else if(strncmp(rx,"LED:OFF",sizeof("LED:OFF")-1)==0)led_light=0;
          strcpy(tx,rx);
+				 //strcpy()把rx所指的由NULL结束的字符串复制到tx所指的数组中,返回指向tx字符串的起始地址。
+				 //所以rx[9]必须为0
       }
    }
 }
@@ -110,20 +111,21 @@ int main(void)
 
 	//USART_TX-PA9; USART_RX-PA10
 	USARTl_init();//USARTl外设初始化：gpio clock等设置
-   tx_cnt=0;
-   rx_cnt=0;
-   trans_recv=0;//0-发送 1-接收
-   flag_rx=0;
+	tx_cnt=0;
+	rx_cnt=0;
+	trans_recv=0;//0-发送 1-接收
+	flag_rx=0;
+	tx_step=0;
    
 	while(1)
 	{
 			//GPIOA->ODR ^= GPIO_ODR_5;
 			commu();
       
-         if(led_light==1)GPIOA->ODR |= GPIO_ODR_5;
-         else GPIOA->ODR &= ~GPIO_ODR_5;
+			if(led_light==1)GPIOA->ODR |= GPIO_ODR_5;
+			else GPIOA->ODR &= ~GPIO_ODR_5;
 
-		   delay(20);
+		  delay(20);
 	}
 }
 
@@ -160,11 +162,20 @@ void USART1_IRQHandler(void)
    //USART transmission
    if(USART1->ISR & USART_ISR_TXE)
    {
-      USART1->TDR = tx[tx_cnt];
-      tx_cnt++;
-      if(tx_cnt>=tx_size||tx_cnt>=10)tx_cnt=0;
+				USART1->TDR = tx[tx_cnt];
+				tx_cnt++;		
+				if(tx_cnt>=tx_size||tx_cnt>=10)
+				{
+					tx_cnt=0;
+				}
    }
-   
+   //Transmission complete
+	 /*
+   if(USART1->ISR & USART_ISR_TC)
+   {
+      USART1->ICR |= USART_ICR_TCCF;
+   }	 
+	 */
    //Receive data
    if(USART1->ISR & USART_ISR_RXNE)
    {

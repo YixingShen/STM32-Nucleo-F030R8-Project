@@ -3,7 +3,7 @@
 #include <string.h>
 
 __IO uint32_t uwTick;
-uint8_t rx[10],tx[10]="Ready:GO\r\n",led_light;
+uint8_t rx[10],tx[11]="Ready:GO\r\n",led_light;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -86,10 +86,10 @@ void DMA_init(void)
    DMA1_Channel3->CPAR = (uint32_t) (&(USART1->RDR)); /* (3) */
 	DMA1_Channel2->CMAR = (uint32_t)(tx); /* (4) */
    DMA1_Channel3->CMAR = (uint32_t)(rx); /* (4) */
-	DMA1_Channel2->CNDTR = 10; /* (5) */
-   DMA1_Channel3->CNDTR = 10; /* (5) */
+	DMA1_Channel2->CNDTR = 10;//从10到0，11个数据 /* (5) */
+   DMA1_Channel3->CNDTR = 9;//从9到0，10个数据 /* (5) */
 	DMA1_Channel2->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TEIE | DMA_CCR_TCIE ; /* (6) */     //| DMA_CCR_CIRC
-	DMA1_Channel3->CCR |= DMA_CCR_MINC | DMA_CCR_TEIE | DMA_CCR_TCIE ; /* (6) */     //| DMA_CCR_CIRC
+	DMA1_Channel3->CCR |= DMA_CCR_MINC | DMA_CCR_TEIE | DMA_CCR_TCIE | DMA_CCR_CIRC ; /* (6) */ 
 	DMA1_Channel2->CCR |= DMA_CCR_EN; /* (7) */
    DMA1_Channel3->CCR |= DMA_CCR_EN; /* (7) */
 	/* Configure NVIC for DMA */
@@ -101,6 +101,7 @@ void DMA_init(void)
 
 int main(void)
 {
+	uint8_t i;
 	/*Configure the SysTick to have interrupt in 1ms time basis*/
 	SysTick_Config(8000);//使用HSI=8MHz作为系统时钟
 	
@@ -110,14 +111,17 @@ int main(void)
 	//USART_TX-PA9; USART_RX-PA10
 	USARTl_init();//USARTl外设初始化：gpio clock等设置
    DMA_init();
-   
+
 	while(1)
 	{
 			//GPIOA->ODR ^= GPIO_ODR_5;
-         if(led_light==1)GPIOA->ODR |= GPIO_ODR_5;
-         else GPIOA->ODR &= ~GPIO_ODR_5;
+      if(strncmp(tx,"LED:ON",sizeof("LED:ON")-1)==0)led_light=1;
+      if(strncmp(tx,"LED:OFF",sizeof("LED:OFF")-1)==0)led_light=0;		
+		
+      if(led_light==1)GPIOA->ODR |= GPIO_ODR_5;
+      else GPIOA->ODR &= ~GPIO_ODR_5;
 
-		   delay(20);
+		  delay(20);
 	}
 }
 
@@ -133,6 +137,7 @@ void SysTick_Handler(void)
 
 void DMA1_Channel2_3_IRQHandler(void)
 {
+	uint8_t i;
    /******DMA1_Channel2*****/
    //transfer error
    if(DMA1->ISR & DMA_ISR_TEIF2)
@@ -154,6 +159,10 @@ void DMA1_Channel2_3_IRQHandler(void)
    //transfer complete
    if(DMA1->ISR & DMA_ISR_TCIF3)
    {
+      strcpy(tx,rx);		
+			//strcpy()把rx所指的由NULL结束的字符串复制到tx所指的数组中,返回指向tx字符串的起始地址。
+			//所以rx[9]必须为0		 
+		  //for(i=0;i<10;i++)rx[i]=0;
       DMA1->IFCR |= DMA_IFCR_CTCIF3;
    }    
 }
