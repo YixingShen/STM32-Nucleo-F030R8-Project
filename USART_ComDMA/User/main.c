@@ -3,7 +3,7 @@
 #include <string.h>
 
 __IO uint32_t uwTick;
-uint8_t rx[10],tx[11]="Ready:GO\r\n",led_light;
+uint8_t rx[10],tx[11]="Ready:GO\r\n",led_light,tx_size,rx_size;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
 {
@@ -61,7 +61,7 @@ void USARTl_init(void)
    //Enable DMA in reception and transmission
    USART1->CR3 = USART_CR3_DMAT | USART_CR3_DMAR;   
    //8 data bit, 1 start bit, 1 stop bit, no parity, reception and transmission enabled
-   USART1->CR1 = USART_CR1_TE |USART_CR1_RE | USART_CR1_UE;
+   USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
    /* Polling idle frame Transmission */
    while ((USART1->ISR & USART_ISR_TC) != USART_ISR_TC)
    {
@@ -69,6 +69,20 @@ void USARTl_init(void)
    }
    USART1->ICR |= USART_ICR_TCCF; /* Clear TC flag */
    USART1->CR1 |= USART_CR1_TCIE; /* Enable TC interrupt */
+#if 0
+   while ((USART1->ISR & USART_ISR_IDLE) != USART_ISR_IDLE)
+   {
+       /* add time out here for a robust application */
+   }
+   USART1->ICR |= USART_ICR_IDLECF; /* Clear TC flag */
+   USART1->CR1 |= USART_CR1_IDLEIE; /* Enable TC interrupt */	 
+	 
+	/* Configure NVIC for USART1 Interrupt */
+	//set USART1 Interrupt to the lowest priority
+	NVIC_SetPriority(USART1_IRQn, 0);
+	//Enable Interrupt on USART1
+	NVIC_EnableIRQ(USART1_IRQn);   	 
+#endif
 }
 
 void DMA_init(void)
@@ -86,12 +100,12 @@ void DMA_init(void)
    DMA1_Channel3->CPAR = (uint32_t) (&(USART1->RDR)); /* (3) */
 	DMA1_Channel2->CMAR = (uint32_t)(tx); /* (4) */
    DMA1_Channel3->CMAR = (uint32_t)(rx); /* (4) */
-	DMA1_Channel2->CNDTR = 10;//从10到0，11个数据 /* (5) */
-   DMA1_Channel3->CNDTR = 9;//从9到0，10个数据 /* (5) */
-	DMA1_Channel2->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TEIE | DMA_CCR_TCIE ; /* (6) */     //| DMA_CCR_CIRC
+	DMA1_Channel2->CNDTR = tx_size;//10;//从10到0，11个数据 /* (5) */
+  DMA1_Channel3->CNDTR = rx_size;//9;//从9到0，10个数据 /* (5) */
+	DMA1_Channel2->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TEIE | DMA_CCR_TCIE | DMA_CCR_CIRC; /* (6) */
 	DMA1_Channel3->CCR |= DMA_CCR_MINC | DMA_CCR_TEIE | DMA_CCR_TCIE | DMA_CCR_CIRC ; /* (6) */ 
 	DMA1_Channel2->CCR |= DMA_CCR_EN; /* (7) */
-   DMA1_Channel3->CCR |= DMA_CCR_EN; /* (7) */
+  //DMA1_Channel3->CCR |= DMA_CCR_EN; /* (7) */
 	/* Configure NVIC for DMA */
 	/* (1) Enable Interrupt on DMA Channel 2 and 3 */
 	/* (2) Set priority for DMA Channel 2 and 3 */
@@ -107,10 +121,15 @@ int main(void)
 	
 	//LED2-PA5
    LED_init();
+	
+	//strlen() 函数计算的是字符串的实际长度，遇到第一个'\0'结束，不包括结束字符"\0"。
+	tx_size=strlen(tx);//-1;
+	if(strlen(rx)>0)rx_size=strlen(rx);//-1;
+	else rx_size=9;//0;
 
 	//USART_TX-PA9; USART_RX-PA10
 	USARTl_init();//USARTl外设初始化：gpio clock等设置
-   DMA_init();
+  DMA_init();
 
 	while(1)
 	{
@@ -148,6 +167,9 @@ void DMA1_Channel2_3_IRQHandler(void)
    if(DMA1->ISR & DMA_ISR_TCIF2)
    {
       DMA1->IFCR |= DMA_IFCR_CTCIF2;
+		  DMA1_Channel2->CCR &= ~DMA_CCR_EN;//
+		 
+		  DMA1_Channel3->CCR |= DMA_CCR_EN; 
    }   
       
    /******DMA1_Channel3*****/
@@ -159,10 +181,29 @@ void DMA1_Channel2_3_IRQHandler(void)
    //transfer complete
    if(DMA1->ISR & DMA_ISR_TCIF3)
    {
+		  DMA1->IFCR |= DMA_IFCR_CTCIF3;
+		  DMA1_Channel3->CCR &= ~DMA_CCR_EN; 
+		 
       strcpy(tx,rx);		
 			//strcpy()把rx所指的由NULL结束的字符串复制到tx所指的数组中,返回指向tx字符串的起始地址。
 			//所以rx[9]必须为0		 
 		  //for(i=0;i<10;i++)rx[i]=0;
-      DMA1->IFCR |= DMA_IFCR_CTCIF3;
+     
+			tx_size=strlen(tx);//-1;
+		  DMA1_Channel2->CNDTR = tx_size;
+		  DMA1_Channel2->CCR |= DMA_CCR_EN;
    }    
 }
+/*
+void USART1_IRQHandler(void)
+{
+   //Frame error
+   if(USART1->ISR & USART_ISR_IDLE)
+   {
+      USART1->ICR |= USART_ICR_IDLECF;
+		  rx_size=strlen(rx)-1;
+		  DMA1_Channel3->CNDTR = rx_size;
+		  DMA1_Channel3->CCR |= DMA_CCR_EN; 
+   }   
+ }
+*/

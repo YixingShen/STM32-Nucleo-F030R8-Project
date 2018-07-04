@@ -60,8 +60,10 @@ void USARTl_init(void)
    USART1->BRR = 80000 / 96;// 8000000/9600;
    //8 data bit, 1 start bit, 1 stop bit, no parity
    USART1->CR3 = USART_CR3_EIE;
-   USART1->CR1 = USART_CR1_TXEIE | USART_CR1_RXNEIE |USART_CR1_RE | USART_CR1_UE;// | USART_CR1_TE;
-   
+   USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_TCIE;
+   while((USART1->ISR & USART_ISR_TC)==0);
+   USART1->ICR |= USART_ICR_TCCF;
+	 
 	/* Configure NVIC for USART1 Interrupt */
 	//set USART1 Interrupt to the lowest priority
 	NVIC_SetPriority(USART1_IRQn, 0);
@@ -79,8 +81,9 @@ void commu(void)
       {
          if(tx_step==0)sprintf(tx,"Ready\r\n");
 
-				 tx_size=strlen(tx);
-				 USART1->CR1 |= USART_CR1_TE;
+				 tx_size=strlen(tx);//strlen() 函数计算的是字符串的实际长度，遇到第一个'\0'结束，不包括结束字符"\0"。
+				 
+				 USART1->TDR = tx[0];
 			}
 			else tx_size=0;
 			tx_step=2;
@@ -159,34 +162,29 @@ void USART1_IRQHandler(void)
    }
    
    
-   //USART transmission
-   if(USART1->ISR & USART_ISR_TXE)
-   {
-				USART1->TDR = tx[tx_cnt];
-				tx_cnt++;		
-				if(tx_cnt>=tx_size||tx_cnt>=10)
-				{
-					tx_cnt=0;
-				}
-   }
    //Transmission complete
-	 /*
    if(USART1->ISR & USART_ISR_TC)
    {
       USART1->ICR |= USART_ICR_TCCF;
+			if(tx_cnt<10)tx_cnt++;
+		  if(tx_cnt<tx_size)USART1->TDR = tx[tx_cnt];
+			else tx_cnt=0;		 
    }	 
-	 */
    //Receive data
    if(USART1->ISR & USART_ISR_RXNE)
    {
+		  if(rx_cnt>=10)rx_cnt=0;
       rx[rx_cnt] = USART1->RDR;
       if(rx[rx_cnt]=='\n')
       {
          flag_rx=1;
          rx_cnt=0;
       }
-      else rx_cnt++;
-      if(rx_cnt>=10)rx_cnt=0;
+      else 
+		  {
+				if(rx_cnt<10)rx_cnt++;
+        else rx_cnt=0;
+			}
    }
 }
 
