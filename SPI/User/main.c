@@ -33,9 +33,9 @@ void SPI_init(void)
 {
    /******************************************************************
    SPI1_NSS:PA4
-   SPI1_SCK:PA5
-   SPI1_MISO:PA6
-   SPI1_MOSI:PA7
+   SPI1_SCK:PA5 NetCN5_6
+   SPI1_MISO:PA6 NetCN5_5
+   SPI1_MOSI:PA7 NetCN5_4
    *******************************************************************/
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
 	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;  //打开SPI1时钟
