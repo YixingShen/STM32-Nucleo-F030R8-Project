@@ -32,38 +32,61 @@ void LED_init(void)
 void SPI_init(void)
 {
    /******************************************************************
-   SPI1_NSS:PA4              PA15
-   SPI1_SCK:PA5 NetCN5_6     PB3
-   SPI1_MISO:PA6 NetCN5_5    PB4
-   SPI1_MOSI:PA7 NetCN5_4    PB5
+   SPI1_NSS:  PA4
+   SPI1_SCK:  PB3
+   SPI1_MISO: PB4
+   SPI1_MOSI: PB5
    *******************************************************************/
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
+   RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟S
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
 	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;  //打开SPI1时钟
-	GPIOA->MODER |= GPIO_MODER_MODER7_1 | GPIO_MODER_MODER6_1 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER4_1;//PA4 PA5 PA6 PA7复用功能
-	GPIOA->AFR[0] &= 0x0000FFFF;//PA7-AF0 PA6-AF0 PA5-AF0 PA4-AF0
-	GPIOA->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR10 | GPIO_OSPEEDR_OSPEEDR9;//PA9 PA10高速
-   GPIOA->OTYPER &= ~GPIO_OTYPER_OT_9;//PA9推挽输出
-	GPIOA->OTYPER &= ~GPIO_OTYPER_OT_10;//PA10推挽输出
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR9_0 | GPIO_PUPDR_PUPDR10_0;//PA9上拉 PA10上拉
+	GPIOA->MODER |= GPIO_MODER_MODER4_1;//PA4复用功能
+   GPIOB->MODER |= GPIO_MODER_MODER5_1 | GPIO_MODER_MODER4_1 | GPIO_MODER_MODER3_1;//PB3 PB4 PB5复用功能
+	GPIOA->AFR[0] &= 0xFFF0FFFF;//PA4-AF0
+   GPIOB->AFR[0] &= 0xFF000FFF;//PB5-AF0 PB4-AF0 PB3-AF0 
+	GPIOA->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR4;//PA4高速
+   GPIOA->OTYPER &= ~GPIO_OTYPER_OT_4;//PA4推挽输出
+	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_1;//PA4下拉
+
+	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR5 | GPIO_OSPEEDR_OSPEEDR4 | GPIO_OSPEEDR_OSPEEDR3;//PB3 PB4 PB5高速
+   GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_5 | GPIO_OTYPER_OT_4 | GPIO_OTYPER_OT_3);//PB3 PB4 PB5推挽输出
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR5_1 | GPIO_PUPDR_PUPDR4_1 |GPIO_PUPDR_PUPDR3_1;//PB3 PB4 PB5下拉
    
-   //复位USART1
+   //复位SPI1
    RCC->APB2RSTR |= RCC_APB2RSTR_SPI1RST;
    RCC->APB2RSTR &= ~RCC_APB2RSTR_SPI1RST;   
    
-   
-   //Oversampling by 16, 9600 baudrate
-   USART1->BRR = 80000 / 96;// 8000000/9600;
-   //8 data bit, 1 start bit, 1 stop bit, no parity
-   USART1->CR3 = USART_CR3_EIE;
-   USART1->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_TCIE;
-   while((USART1->ISR & USART_ISR_TC)==0);
-   USART1->ICR |= USART_ICR_TCCF;
-	 
-	/* Configure NVIC for USART1 Interrupt */
-	//set USART1 Interrupt to the lowest priority
-	NVIC_SetPriority(USART1_IRQn, 0);
-	//Enable Interrupt on USART1
-	NVIC_EnableIRQ(USART1_IRQn);   
+   /******************************************
+    空闲状态SCK低电平，第一个SCK边沿采样数据；
+    主模式；
+    Baud Rate：fpclk/2=4MBits/s，fpclk=fhclk=fsysclk=8MHz；
+    MSB在前；
+    NSS硬件管理；
+    2线全双工；
+    不使用CRC；
+    ******************************************/
+   SPI1->CR1 = SPI_CR1_MSTR;
+   /******************************************
+    不使用TX和RX DMA；
+    NSS输出使能；
+    不使用NSS脉冲模式；
+    使用Motorola模式；
+    错误中断使能；
+    RXNE中断使能；
+    TXE中断使能；
+    数据长度：8bit；
+    接收阈值：8bit；
+    ******************************************/   
+   SPI1->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 
+             | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE | SPI_CR2_SSOE;
+   //使能SPI1
+   SPI1->CR1 |= SPI_CR1_SPE;
+
+	/* Configure NVIC for SPI1 Interrupt */
+	//set SPI1 Interrupt to the lowest priority
+	NVIC_SetPriority(SPI1_IRQn, 0);
+	//Enable Interrupt on SPI1
+	NVIC_EnableIRQ(SPI1_IRQn);   
 }
 
 void commu(void)
@@ -129,4 +152,74 @@ void SysTick_Handler(void)
    uwTick++;
 }
 
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @param  None
+  * @retval None
+  */
+static void Error_Handler(void)
+{
+  while(1)
+  {
+    /* Toggle LED2 */
+    GPIOA->ODR ^= GPIO_ODR_5;
+    delay(1000);
+  }
+}
 
+void SPI1_IRQHandler(void)
+{
+   int8_t i,error_code=0;
+   
+   /* SPI in mode Receiver ----------------------------------------------------*/
+   if (((SPI1->SR & SPI_SR_OVR) == RESET) &&
+      ((SPI1->SR  & SPI_SR_RXNE) != RESET) && ((SPI1->CR2  & SPI_CR2_RXNEIE) != RESET))
+   {
+      rx[0] = SPI1->DR;
+      return;
+   }
+
+   /* SPI in mode Transmitter -------------------------------------------------*/
+   if (((SPI1->SR & SPI_SR_TXE) != RESET) && ((SPI1->CR2 & SPI_CR2_TXEIE) != RESET))
+   {
+      SPI1->DR = tx[0];
+      return;
+   }
+
+   /* SPI in Error Treatment --------------------------------------------------*/
+   if (((SPI1->SR & (SPI_SR_MODF | SPI_SR_OVR | SPI_SR_FRE)) != RESET) && ((SPI1->CR2 & SPI_CR2_ERRIE) != RESET))
+   {
+      /* SPI Overrun error interrupt occurred ----------------------------------*/
+      if ((SPI1->SR & SPI_SR_OVR) != RESET)
+      {
+         error_code=1;
+         i = SPI1->DR;
+         i = SPI1->SR;
+         return;
+      }
+
+      /* SPI Mode Fault error interrupt occurred -------------------------------*/
+      if ((SPI1->SR & SPI_SR_MODF) != RESET)
+      {
+         error_code=2;
+         i = SPI1->SR;
+         SPI1->CR1 &= ~SPI_CR1_SPE;
+      }
+
+      /* SPI Frame error interrupt occurred ------------------------------------*/
+      if ((SPI1->SR & SPI_SR_FRE) != RESET)
+      {
+         error_code=3;
+         i = SPI1->SR;
+      }
+
+      if (error_code != 0)
+      {
+         /* Disable all interrupts */
+         SPI1->CR2 &= ~(SPI_CR2_RXNEIE | SPI_CR2_TXEIE | SPI_CR2_ERRIE);
+         /* Call user error callback */
+         Error_Handler();
+      }
+    return;
+  }   
+}
