@@ -386,6 +386,11 @@
               <FileType>1</FileType>
               <FilePath>.\User\main.c</FilePath>
             </File>
+            <File>
+              <FileName>PL1167.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\PL1167.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
