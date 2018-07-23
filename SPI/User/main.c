@@ -35,70 +35,21 @@ void Button_init(void)
 
 void SPI_init(void)
 {
-#if 0
-   /******************************************************************
-   SPI1_NSS:  PA4
-   SPI1_SCK:  PB3
-   SPI1_MISO: PB4
-   SPI1_MOSI: PB5
-   *******************************************************************/
-   RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
-	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;  //打开SPI1时钟
-	GPIOA->MODER |= GPIO_MODER_MODER4_1;//PA4复用功能
-   GPIOB->MODER |= GPIO_MODER_MODER5_1 | GPIO_MODER_MODER4_1 | GPIO_MODER_MODER3_1;//PB3 PB4 PB5复用功能
-	GPIOA->AFR[0] &= 0xFFF0FFFF;//PA4-AF0
-   GPIOB->AFR[0] &= 0xFF000FFF;//PB5-AF0 PB4-AF0 PB3-AF0 
-	GPIOA->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR4;//PA4高速
-   GPIOA->OTYPER &= ~GPIO_OTYPER_OT_4;//PA4推挽输出
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_1;//PA4下拉
-
-	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR5 | GPIO_OSPEEDR_OSPEEDR4 | GPIO_OSPEEDR_OSPEEDR3;//PB3 PB4 PB5高速
-   GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_5 | GPIO_OTYPER_OT_4 | GPIO_OTYPER_OT_3);//PB3 PB4 PB5推挽输出
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR5_1 | GPIO_PUPDR_PUPDR4_1 |GPIO_PUPDR_PUPDR3_1;//PB3 PB4 PB5下拉
-
-   //复位SPI1
-   RCC->APB2RSTR |= RCC_APB2RSTR_SPI1RST;
-   RCC->APB2RSTR &= ~RCC_APB2RSTR_SPI1RST;   
-   
-   /******************************************
-    空闲状态SCK低电平，第一个SCK边沿采样数据；
-    主模式；
-    Baud Rate：fpclk/2=4MBits/s，fpclk=fhclk=fsysclk=8MHz；
-    MSB在前；
-    NSS硬件管理；
-    2线全双工；
-    不使用CRC；
-    ******************************************/
-   SPI1->CR1 = SPI_CR1_MSTR;
-   /******************************************
-    不使用TX和RX DMA；
-    NSS输出使能；
-    不使用NSS脉冲模式；
-    使用Motorola模式；
-    错误中断使能；
-    RXNE中断使能；
-    TXE中断使能；
-    数据长度：8bit；
-    接收阈值：8bit；
-    ******************************************/   
-   SPI1->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 
-             | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE | SPI_CR2_SSOE;
-   //使能SPI1
-   SPI1->CR1 |= SPI_CR1_SPE;
-
-	/* Configure NVIC for SPI1 Interrupt */
-	//set SPI1 Interrupt to the lowest priority
-	NVIC_SetPriority(SPI1_IRQn, 0);
-	//Enable Interrupt on SPI1
-	NVIC_EnableIRQ(SPI1_IRQn);   
-#else
    /******************************************************************
    SPI2_NSS:  PB12
-   SPI2_SCK:  PB13
-   SPI2_MISO: PB14
-   SPI2_MOSI: PB15
+   SPI2_SCK:  PB13   NetCN10_30
+   SPI2_MISO: PB14   NetCN10_28
+   SPI2_MOSI: PB15   NetCN10_26
+	 PKT	PA1  //input
+   RFRST PA0	 
    *******************************************************************/
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
+	GPIOA->MODER &= ~GPIO_MODER_MODER1;//PA1输入
+	GPIOA->MODER |= GPIO_MODER_MODER0_0;//PA0输出	
+	GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);//PA1 PA0推挽输出
+	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_1 | GPIO_PUPDR_PUPDR0_1;//PA1 PA0下拉
+	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0;//PA1 PA0上拉
+	
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
 	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;  //打开SPI2时钟
 
@@ -106,22 +57,24 @@ void SPI_init(void)
    GPIOB->AFR[1] &= 0x0000FFFF;//PB15-AF0 PB14-AF0 PB13-AF0 PB12-AF0
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR15 | GPIO_OSPEEDR_OSPEEDR14 | GPIO_OSPEEDR_OSPEEDR13 | GPIO_OSPEEDR_OSPEEDR12;//PB12 PB13 PB14 PB15高速
    GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_13 | GPIO_OTYPER_OT_12);//PB12 PB13 PB14 PB15推挽输出
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
-
+	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
+	CS_H;//PB12输出高电平
+	
    //复位SPI2
    RCC->APB1RSTR |= RCC_APB1RSTR_SPI2RST;
    RCC->APB1RSTR &= ~RCC_APB1RSTR_SPI2RST;   
    
    /******************************************
-    空闲状态SCK低电平，第一个SCK边沿采样数据；
+    空闲状态SCK低电平，第二个SCK边沿采样数据；
     主模式；
-    Baud Rate：fpclk/2=4MBits/s，fpclk=fhclk=fsysclk=8MHz；
+    Baud Rate：fpclk/256//fpclk/2=4MBits/s，fpclk=fhclk=fsysclk=8MHz；
     MSB在前；
-    NSS硬件管理；
+    NSS软件管理//硬件管理；
     2线全双工；
     不使用CRC；
     ******************************************/
-   SPI2->CR1 = SPI_CR1_MSTR;
+   SPI2->CR1 = SPI_CR1_MSTR | SPI_CR1_CPHA | SPI_CR1_BR | SPI_CR1_SSM | SPI_CR1_SSI;
    /******************************************
     不使用TX和RX DMA；
     NSS输出使能；
@@ -143,7 +96,6 @@ void SPI_init(void)
 	NVIC_SetPriority(SPI2_IRQn, 0);
 	//Enable Interrupt on SPI1
 	NVIC_EnableIRQ(SPI2_IRQn);   
-#endif
 }
 
 int main(void)
@@ -200,7 +152,7 @@ int main(void)
 #ifdef Receive_Mode//只收
 		Receive_DATA();   
 #endif		
-      
+      if(PKT_IS_LOW) LED2_ON;
       delay(20);
 	}
 }
@@ -294,8 +246,9 @@ void SPI2_IRQHandler(void)
    //int8_t i,error_code=0;
    
    /* SPI in mode Receiver ----------------------------------------------------*/
-   if (((SPI2->SR & SPI_SR_OVR) == RESET) &&
-      ((SPI2->SR  & SPI_SR_RXNE) != RESET) && ((SPI2->CR2  & SPI_CR2_RXNEIE) != RESET))
+   if //(((SPI2->SR & SPI_SR_OVR) == RESET) &&
+      //((SPI2->SR  & SPI_SR_RXNE) != RESET) && ((SPI2->CR2  & SPI_CR2_RXNEIE) != RESET))
+	    ((SPI2->SR  & SPI_SR_RXNE) != RESET)
    {
       rx[receive_cnt] = SPI2->DR;
       receive_cnt++;
@@ -309,7 +262,8 @@ void SPI2_IRQHandler(void)
    }
 
    /* SPI in mode Transmitter -------------------------------------------------*/
-   if (((SPI2->SR & SPI_SR_TXE) != RESET) && ((SPI2->CR2 & SPI_CR2_TXEIE) != RESET))
+   if //(((SPI2->SR & SPI_SR_TXE) != RESET) && ((SPI2->CR2 & SPI_CR2_TXEIE) != RESET))
+		  ((SPI2->SR & SPI_SR_TXE) != RESET)
    {
       SPI2->DR = tx[sent_cnt];
       if(sent_cnt<send_size-1)sent_cnt++;

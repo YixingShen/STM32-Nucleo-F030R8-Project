@@ -52,6 +52,8 @@ void delay_msec(unsigned int x)
 //-----------------------------------------------------------------------------
 void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 {
+				CS_L;
+	
         //等待上一次发送完
         while((SPI2->SR & SPI_SR_FTLVL)!=0);
         while((SPI2->SR & SPI_SR_BSY)!=0);
@@ -62,6 +64,8 @@ void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
         send_size=3; 
 
         SPI2->CR2 |= SPI_CR2_TXEIE;
+	
+				CS_H;
    
         if(addr < 0x20)
                 pdelay(RF_GAP); 
@@ -73,6 +77,9 @@ unsigned int Reg_read16(unsigned char addr)
 {
         //unsigned char clr;
         unsigned int value =0;
+	
+				CS_L;
+	
         //等待上一次发送完
         while((SPI2->SR & SPI_SR_FTLVL)!=0);
         while((SPI2->SR & SPI_SR_BSY)!=0);   
@@ -99,6 +106,8 @@ unsigned int Reg_read16(unsigned char addr)
         value = rx[0];
         value<<=8;
         value |= rx[1];
+				
+				CS_H;
 
         return value;
 }
@@ -185,7 +194,9 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
         unsigned char j;
 
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
-
+				
+				CS_L;
+	
         //等待上一次发送完
         while((SPI2->SR & SPI_SR_FTLVL)!=0);
         while((SPI2->SR & SPI_SR_BSY)!=0);   
@@ -203,7 +214,9 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
                 tx[j] = *ptr++;
         }
         SPI2->CR2 |= SPI_CR2_TXEIE;
-        
+				
+        CS_H;
+				
         Reg_write16(0x07, (0x00|0x01), gReg7_low&0x7f);//TX Enable
 //	pdelay(10);
         //refresh_watchdog;
@@ -226,7 +239,9 @@ void RX_packet(void)
 
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
-
+				
+				CS_H;
+	
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {

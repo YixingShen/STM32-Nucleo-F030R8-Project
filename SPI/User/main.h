@@ -41,8 +41,9 @@ void Receive_DATA(void);
 //RFRST
 #define RFRST_H    GPIOA->ODR |= GPIO_ODR_0//PA0=1
 #define RFRST_L    GPIOA->ODR &= ~GPIO_ODR_0//PA0=0
-
-
+//CS
+#define CS_H       GPIOB->ODR |= GPIO_ODR_12
+#define CS_L       GPIOB->ODR &= ~GPIO_ODR_12
 
 #define LED2_ON     GPIOA->ODR |= GPIO_ODR_5
 #define LED2_OFF    GPIOA->ODR &= ~GPIO_ODR_5
