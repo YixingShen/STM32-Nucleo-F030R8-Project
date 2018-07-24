@@ -47,40 +47,17 @@ unsigned int Reg_read16(unsigned char addr);
 #define ADD_INI   0XAF89
 
 //SPI for PL1167
-#if 0
-//SPICLK
-#define SPICLK_H    GPIOB->ODR |= GPIO_ODR_0//PB0=1
-#define SPICLK_L    GPIOB->ODR &= ~GPIO_ODR_0//PB0=0
-//SPIMISO input
-#define SPIMISO_IS_H    (GPIOB->IDR & GPIO_IDR_4)!=0//PB4==1
-#define SPIMISO_IS_L    (GPIOB->IDR & GPIO_IDR_4)==0//PB4==0
-//SPIMOSI
-#define SPIMOSI_H    GPIOB->ODR |= GPIO_ODR_5//PB5=1
-#define SPIMOSI_L    GPIOB->ODR &= ~GPIO_ODR_5//PB5=0
-//SPICS
-#define SPICS_H    GPIOA->ODR |= GPIO_ODR_4//PA4=1
-#define SPICS_L    GPIOA->ODR &= ~GPIO_ODR_4//PA4=0
-#else
-//SPICLK
-#define SPICLK_H    GPIOB->ODR |= GPIO_ODR_13//PB13=1
-#define SPICLK_L    GPIOB->ODR &= ~GPIO_ODR_13//PB13=0
-//SPIMISO input
-#define SPIMISO_IS_H    (GPIOB->IDR & GPIO_IDR_14)!=0//PB14==1
-#define SPIMISO_IS_L    (GPIOB->IDR & GPIO_IDR_14)==0//PB41==0
-//SPIMOSI
-#define SPIMOSI_H    GPIOB->ODR |= GPIO_ODR_15//PB15=1
-#define SPIMOSI_L    GPIOB->ODR &= ~GPIO_ODR_15//PB15=0
-//SPICS
-#define SPICS_H    GPIOB->ODR |= GPIO_ODR_12//PB12=1
-#define SPICS_L    GPIOB->ODR &= ~GPIO_ODR_12//PB12=0
-#endif
 //PKT	input
 #define PKT_IS_LOW   (GPIOA->IDR & GPIO_IDR_1)==0//PA1==0
 #define PKT_IS_HIGHT (GPIOA->IDR & GPIO_IDR_1)!=0//PA1==1
 //RFRST
 #define RFRST_H    GPIOA->ODR |= GPIO_ODR_0//PA0=1
 #define RFRST_L    GPIOA->ODR &= ~GPIO_ODR_0//PA0=0
-
+//CS
+#define SPICS_H       GPIOB->ODR |= GPIO_ODR_12
+#define SPICS_L       GPIOB->ODR &= ~GPIO_ODR_12
+//#define SPICS_H       SPI2->CR1 |= SPI_CR1_SSI
+//#define SPICS_L       SPI2->CR1 &= ~SPI_CR1_SSI
 
 #define LED2_ON     GPIOA->ODR |= GPIO_ODR_5
 #define LED2_OFF    GPIOA->ODR &= ~GPIO_ODR_5

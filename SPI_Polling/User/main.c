@@ -35,55 +35,62 @@ void Button_init(void)
 
 void SPI_init(void)
 {
-#if 0
-   /******************************************************************
-   SPI1_NSS:  PA4
-	 SPI1_SCK:  PB0 //不能用PB3，PB3用作了SWO
-   SPI1_MISO: PB4 //input
-   SPI1_MOSI: PB5
-	 PKT	PA1  //input
-   RFRST PA0
-   *******************************************************************/
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
-
-	GPIOA->MODER &= ~GPIO_MODER_MODER1;//PA1输入
-	GPIOA->MODER |= GPIO_MODER_MODER4_0 | GPIO_MODER_MODER0_0;//PA4输出，PA0输出
-	GPIOB->MODER &= ~GPIO_MODER_MODER4;//PB4输入
-	GPIOB->MODER |= GPIO_MODER_MODER5_0 | GPIO_MODER_MODER0_0;//PB5输出，PB0输出
-
-	GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_4 | GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);//PA4 PA1 PA0推挽输出
-	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_1 | GPIO_PUPDR_PUPDR1_1 | GPIO_PUPDR_PUPDR0_1;//PA4 PA1 PA0下拉
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_0 | GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0;//PA4 PA1 PA0上拉
-
-	GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_5 | GPIO_OTYPER_OT_4 | GPIO_OTYPER_OT_0);//PB4 PB5 PB0推挽输出
-	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR5_1 | GPIO_PUPDR_PUPDR4_1 | GPIO_PUPDR_PUPDR0_1;//PB4 PB5 PB0下拉
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR5_0 | GPIO_PUPDR_PUPDR4_0 | GPIO_PUPDR_PUPDR0_0;//PB4 PB5 PB0上拉
-#else	
    /******************************************************************
    SPI2_NSS:  PB12
    SPI2_SCK:  PB13   NetCN10_30
-   SPI2_MISO: PB14   NetCN10_28 输入
+   SPI2_MISO: PB14   NetCN10_28
    SPI2_MOSI: PB15   NetCN10_26
 	 PKT	PA1  //input
    RFRST PA0	 
-   *******************************************************************/	
+   *******************************************************************/
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
-	
 	GPIOA->MODER &= ~GPIO_MODER_MODER1;//PA1输入
 	GPIOA->MODER |= GPIO_MODER_MODER0_0;//PA0输出	
 	GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);//PA1 PA0推挽输出
 	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_1 | GPIO_PUPDR_PUPDR0_1;//PA1 PA0下拉
 	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0;//PA1 PA0上拉
 	
-	GPIOB->MODER &= ~GPIO_MODER_MODER14;//PB14输入
-	GPIOB->MODER |=  GPIO_MODER_MODER12_0 | GPIO_MODER_MODER13_0 | GPIO_MODER_MODER15_0;//PB12 PB13 PB15输出
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
+	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;  //打开SPI2时钟
+
+	GPIOB->MODER |= GPIO_MODER_MODER12_0;//PB12输出
+   GPIOB->MODER |=  GPIO_MODER_MODER13_1 | GPIO_MODER_MODER14_1 | GPIO_MODER_MODER15_1;//PB13 PB14 PB15复用功能
+   GPIOB->AFR[1] &= 0x000FFFFF;//PB15-AF0 PB14-AF0 PB13-AF0
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR15 | GPIO_OSPEEDR_OSPEEDR14 | GPIO_OSPEEDR_OSPEEDR13 | GPIO_OSPEEDR_OSPEEDR12;//PB12 PB13 PB14 PB15高速
-	GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_13 | GPIO_OTYPER_OT_12);//PB12 PB13 PB14 PB15推挽输出
+   GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_13 | GPIO_OTYPER_OT_12);//PB12 PB13 PB14 PB15推挽输出
 	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
 	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
-#endif	
+	SPICS_H;//PB12输出高电平
+	
+   //复位SPI2
+   RCC->APB1RSTR |= RCC_APB1RSTR_SPI2RST;
+   RCC->APB1RSTR &= ~RCC_APB1RSTR_SPI2RST;   
+   
+   /******************************************
+    空闲状态SCK低电平，第二个SCK边沿采样数据；
+    主模式；
+    Baud Rate：fpclk/256，fpclk=fhclk=fsysclk=8MHz；
+    MSB在前；
+    NSS软件管理
+    2线全双工；
+    不使用CRC；
+    ******************************************/
+   SPI2->CR1 = SPI_CR1_MSTR | SPI_CR1_CPHA | SPI_CR1_BR | SPI_CR1_SSM | SPI_CR1_SSI;
+   /******************************************
+    不使用TX和RX DMA；
+    NSS输出使能；
+    不使用NSS脉冲模式；
+    使用Motorola模式；
+    错误中断不使能；
+    RXNE中断不使能；
+    TXE中断不使能；
+    数据长度：8bit；
+    接收阈值：8bit；
+    ******************************************/   
+   SPI2->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;// | SPI_CR2_SSOE;
+   //          | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE;
+   //使能SPI2
+   SPI2->CR1 |= SPI_CR1_SPE;
 }
 
 int main(void)
