@@ -53,9 +53,12 @@ void delay_msec(unsigned int x)
 //-----------------------------------------------------------------------------
 void spi_write(unsigned char spi_bValue)
 {
+				uint32_t spixbase = 0x00;
+				spixbase = (uint32_t)SPI2; 
+				spixbase += 0x0C;		
 	SPICS_L;
 				while((SPI2->SR & SPI_SR_TXE)==0);//等待发送区空
-				SPI2->DR=spi_bValue;	 	  		//发送一个字节
+				*(__IO uint8_t *) spixbase = spi_bValue;//SPI2->DR=spi_bValue;	 	  		//发送一个字节
 				//while((SPI2->SR & SPI_SR_FTLVL)==0);
 }
 //-----------------------------------------------------------------------------
@@ -75,10 +78,16 @@ unsigned char   spi_read(void)
 unsigned char spi_write_read(unsigned char spi_tValue)
 {
         unsigned char spi_rValue;
+				uint32_t spixbase = 0x00;
+				spixbase = (uint32_t)SPI2; 
+				spixbase += 0x0C;	
 	SPICS_L;
 				while((SPI2->SR & SPI_SR_TXE)==0);//等待发送区空
-				//while((SPI2->SR & SPI_SR_BSY)!=0);//等待发送区空
-				SPI2->DR=spi_tValue;	 	  		//发送一个字节	
+	/****************************************************************************************************
+	 这里如果直接使用SPI2->DR=spi_tValue;虽然spi_tValue是一个字节，但是实际发送却是2个字节0x00+spi_tValue;
+	 改为*(__IO uint8_t *) spixbase = spi_tValue;发送正确。
+	*****************************************************************************************************/
+				*(__IO uint8_t *) spixbase = spi_tValue;//SPI2->DR=spi_tValue;	 	  		//发送一个字节	
         while((SPI2->SR  & SPI_SR_RXNE)==0);//等待接收完一个字节
 				spi_rValue=SPI2->DR;
         return spi_rValue;
