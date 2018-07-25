@@ -58,8 +58,8 @@ void SPI_init(void)
    GPIOB->AFR[1] &= 0x000FFFFF;//PB15-AF0 PB14-AF0 PB13-AF0
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR15 | GPIO_OSPEEDR_OSPEEDR14 | GPIO_OSPEEDR_OSPEEDR13 | GPIO_OSPEEDR_OSPEEDR12;//PB12 PB13 PB14 PB15高速
    GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_13 | GPIO_OTYPER_OT_12);//PB12 PB13 PB14 PB15推挽输出
-	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
+	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
 	SPICS_H;//PB12输出高电平
 	
    //复位SPI2
@@ -69,13 +69,13 @@ void SPI_init(void)
    /******************************************
     空闲状态SCK低电平，第二个SCK边沿采样数据；
     主模式；
-    Baud Rate：fpclk/256，fpclk=fhclk=fsysclk=8MHz；
+    Baud Rate：fpclk/64，fpclk=fhclk=fsysclk=8MHz；
     MSB在前；
     NSS软件管理
     2线全双工；
     不使用CRC；
     ******************************************/
-   SPI2->CR1 = SPI_CR1_MSTR | SPI_CR1_CPHA | SPI_CR1_BR | SPI_CR1_SSM | SPI_CR1_SSI;
+   SPI2->CR1 = SPI_CR1_MSTR | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_0 | SPI_CR1_SSM | SPI_CR1_SSI;//SPI_CR1_CPHA
    /******************************************
     不使用TX和RX DMA；
     NSS输出使能；
@@ -144,7 +144,7 @@ int main(void)
 #endif
 #ifdef Receive_Mode//只收
 		Receive_DATA();   
-#endif		 
+#endif	
 								
 		delay(20);
 	}
