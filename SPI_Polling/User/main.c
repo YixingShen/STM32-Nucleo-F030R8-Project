@@ -88,7 +88,6 @@ void SPI_init(void)
     接收阈值：8bit；
     ******************************************/   
    SPI2->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;// | SPI_CR2_SSOE;
-   //          | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE;
    //使能SPI2
    SPI2->CR1 |= SPI_CR1_SPE;
 }

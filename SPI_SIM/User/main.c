@@ -63,7 +63,7 @@ void SPI_init(void)
    /******************************************************************
    SPI2_NSS:  PB12
    SPI2_SCK:  PB13   NetCN10_30
-   SPI2_MISO: PB14   NetCN10_28 输入
+   SPI2_MISO: PB14   NetCN10_28 //input
    SPI2_MOSI: PB15   NetCN10_26
 	 PKT	PA1  //input
    RFRST PA0	 

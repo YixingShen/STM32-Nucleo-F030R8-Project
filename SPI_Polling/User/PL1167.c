@@ -53,7 +53,6 @@ void delay_msec(unsigned int x)
 //-----------------------------------------------------------------------------
 void spi_write(unsigned char spi_bValue)
 {
-        SPICS_L;
 				while((SPI2->SR & SPI_SR_TXE)==0);//等待发送区空
 				SPI2->DR=spi_bValue;	 	  		//发送一个字节
 }
@@ -63,10 +62,8 @@ void spi_write(unsigned char spi_bValue)
 unsigned char   spi_read(void)
 {
         unsigned char spi_bValue;
-        SPICS_L;
         while((SPI2->SR  & SPI_SR_RXNE)==0);//等待接收完一个字节
 				spi_bValue=SPI2->DR;
-
         return spi_bValue;
 }
 //-----------------------------------------------------------------------------
@@ -74,13 +71,15 @@ unsigned char   spi_read(void)
 //-----------------------------------------------------------------------------
 void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 {
+        SPICS_L;
         spi_write(addr);
         spi_write(v1);
         spi_write(v2);
-        SPICS_H;
-
+        
         if(addr < 0x20)
                 pdelay(RF_GAP);
+        
+        SPICS_H;
 }
 
 //-----------------------------------------------------------------------------
@@ -89,6 +88,7 @@ void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 unsigned int Reg_read16(unsigned char addr)
 {
         unsigned int value =0;
+        SPICS_L;
         spi_write(addr | REG_RD);
         if(addr < 0x20)
         {
@@ -203,7 +203,7 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
         unsigned char j;
 
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
-
+        SPICS_L;
         spi_write(0x32);                                        //Fill data to FIFO;
         for(j=0; j<(bytes+1); j++)
         {
@@ -233,7 +233,6 @@ void RX_packet(void)
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
 
-        SPICS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -248,11 +247,13 @@ void RX_packet(void)
         };
 
 Had_Rec:
+        SPICS_L;
         spi_write(0x32 | REG_RD);               //Read FIFO datas
         DAT[0] = spi_read();
         if(DAT[0]>20) DAT[0]=20;            //Maybe first Byte is error;
         for(j=1; j<(DAT[0]+1); j++)             // SPIF0 take 200us to read/write 33 bytes
                 DAT[j] = spi_read();
+        SPICS_H;
 
 time_out:
         if(!timeout)                        //Check if the recevied data is valid;
