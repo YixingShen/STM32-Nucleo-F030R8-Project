@@ -52,20 +52,12 @@ void delay_msec(unsigned int x)
 //-----------------------------------------------------------------------------
 void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 {
-				CS_L;
-	
-        //等待上一次发送完
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);
-
+   CS_L;
         tx[0] = addr;
         tx[1] = v1;
         tx[2] = v2;
         send_size=3; 
-
-        SPI2->CR2 |= SPI_CR2_TXEIE;
-	
-				CS_H;
+   CS_H;
    
         if(addr < 0x20)
                 pdelay(RF_GAP); 
@@ -78,36 +70,18 @@ unsigned int Reg_read16(unsigned char addr)
         //unsigned char clr;
         unsigned int value =0;
 	
-				CS_L;
-	
-        //等待上一次发送完
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);   
+   CS_L;
+   send_size=1; 
+   receive_size=2;
         tx[0] = addr | REG_RD;
-        send_size=1; 
-        SPI2->CR2 |= SPI_CR2_TXEIE;
-   
         if(addr < 0x20)
         {
                 pdelay(RF_GAP);
         }
-        //等待发送完毕
-        while((SPI2->CR2 & SPI_CR2_TXEIE)!=0);
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);           
-        
-        //清RXFIFO
-        //while((SPI2->SR & SPI_SR_FRLVL)!=0)clr=SPI2->DR;
-        //接收
-        SPI2->CR2 |= SPI_CR2_RXNEIE;
-        receive_size=2;
-        //等待接收完
-        while((SPI2->CR2 & SPI_CR2_RXNEIE)!=0);
         value = rx[0];
         value<<=8;
         value |= rx[1];
-				
-				CS_H;
+   CS_H;
 
         return value;
 }
@@ -125,13 +99,6 @@ void GetReg7FromChip(void)
 //-----------------------------------------------------------------------------
 void PL1167_Init(void)
 {
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	GPIOA->MODER &= ~GPIO_MODER_MODER1;//PA1输入
-	GPIOA->MODER |= GPIO_MODER_MODER0_0;//PA0输出
-	GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);//PA1 PA0推挽输出
-	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_1 | GPIO_PUPDR_PUPDR0_1;//PA1 PA0下拉
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0;//PA1 PA0上拉
-   
         RFRST_H;
         msec(10);
         RFRST_L;
@@ -195,28 +162,14 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
 
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
 				
-				CS_L;
-	
-        //等待上一次发送完
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);   
+   CS_L;
         tx[0] = 0x32;     //Fill data to FIFO;
         send_size=1; 
-        SPI2->CR2 |= SPI_CR2_TXEIE;
-        
-        //等待发送完
-        while((SPI2->CR2 & SPI_CR2_TXEIE)!=0);
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);   
-   
         for(j=0; j<(bytes+1); j++)
         {
                 tx[j] = *ptr++;
         }
-        SPI2->CR2 |= SPI_CR2_TXEIE;
-				
-        CS_H;
-				
+   CS_H;
         Reg_write16(0x07, (0x00|0x01), gReg7_low&0x7f);//TX Enable
 //	pdelay(10);
         //refresh_watchdog;
@@ -240,8 +193,7 @@ void RX_packet(void)
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
 				
-				CS_H;
-	
+   CS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -256,28 +208,15 @@ void RX_packet(void)
         };
 
 Had_Rec:
-        //等待上一次发送完
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);   
+   CS_L;
+        send_size=1;     
+        receive_size=2;        
         tx[0] = 0x32 | REG_RD;     //Read FIFO datas
-        send_size=1; 
-        SPI2->CR2 |= SPI_CR2_TXEIE;        
-        
-        //等待发送完
-        while((SPI2->CR2 & SPI_CR2_TXEIE)!=0);
-        while((SPI2->SR & SPI_SR_FTLVL)!=0);
-        while((SPI2->SR & SPI_SR_BSY)!=0);   
-        
-        //接收
-        SPI2->CR2 |= SPI_CR2_RXNEIE;
-        receive_size=2;
-        //等待接收完
-        while((SPI2->CR2 & SPI_CR2_RXNEIE)!=0);        
         DAT[0] = rx[0];
         if(DAT[0]>20) DAT[0]=20;            //Maybe first Byte is error;
         for(j=1; j<(DAT[0]+1); j++)             // SPIF0 take 200us to read/write 33 bytes
                 DAT[j] = rx[j];
-
+   CS_H;
 time_out:
         if(!timeout)                        //Check if the recevied data is valid;
         {

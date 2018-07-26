@@ -53,12 +53,13 @@ void SPI_init(void)
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
 	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;  //打开SPI2时钟
 
-   GPIOB->MODER |= GPIO_MODER_MODER12_1 | GPIO_MODER_MODER13_1 | GPIO_MODER_MODER14_1 | GPIO_MODER_MODER15_1;//PB12 PB13 PB14 PB15复用功能
-   GPIOB->AFR[1] &= 0x0000FFFF;//PB15-AF0 PB14-AF0 PB13-AF0 PB12-AF0
+	GPIOB->MODER |= GPIO_MODER_MODER12_0;//PB12输出
+   GPIOB->MODER |=  GPIO_MODER_MODER13_1 | GPIO_MODER_MODER14_1 | GPIO_MODER_MODER15_1;//PB13 PB14 PB15复用功能
+   GPIOB->AFR[1] &= 0x000FFFFF;//PB15-AF0 PB14-AF0 PB13-AF0
 	GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR15 | GPIO_OSPEEDR_OSPEEDR14 | GPIO_OSPEEDR_OSPEEDR13 | GPIO_OSPEEDR_OSPEEDR12;//PB12 PB13 PB14 PB15高速
    GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_13 | GPIO_OTYPER_OT_12);//PB12 PB13 PB14 PB15推挽输出
-	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_1 | GPIO_PUPDR_PUPDR14_1 |GPIO_PUPDR_PUPDR13_1 |GPIO_PUPDR_PUPDR12_1;//PB12 PB13 PB14 PB15下拉
+	//GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 |GPIO_PUPDR_PUPDR13_0 |GPIO_PUPDR_PUPDR12_0;//PB12 PB13 PB14 PB15上拉
 	CS_H;//PB12输出高电平
 	
    //复位SPI2
@@ -86,8 +87,8 @@ void SPI_init(void)
     数据长度：8bit；
     接收阈值：8bit；
     ******************************************/   
-   SPI2->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 | SPI_CR2_SSOE;
-   //          | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE;
+   SPI2->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 | SPI_CR2_SSOE
+             | SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE;
    //使能SPI2
    SPI2->CR1 |= SPI_CR1_SPE;
 
@@ -183,68 +184,13 @@ static void Error_Handler(void)
 }
 #endif
 uint8_t sent_cnt,receive_cnt;
-#if 0
-void SPI1_IRQHandler(void)
-{
-   int8_t i,error_code=0;
-   
-   /* SPI in mode Receiver ----------------------------------------------------*/
-   if (((SPI1->SR & SPI_SR_OVR) == RESET) &&
-      ((SPI1->SR  & SPI_SR_RXNE) != RESET) && ((SPI1->CR2  & SPI_CR2_RXNEIE) != RESET))
-   {
-      rx[0] = SPI1->DR;
-      return;
-   }
-
-   /* SPI in mode Transmitter -------------------------------------------------*/
-   if (((SPI1->SR & SPI_SR_TXE) != RESET) && ((SPI1->CR2 & SPI_CR2_TXEIE) != RESET))
-   {
-      SPI1->DR = tx[0];
-      return;
-   }
-
-   /* SPI in Error Treatment --------------------------------------------------*/
-   if (((SPI1->SR & (SPI_SR_MODF | SPI_SR_OVR | SPI_SR_FRE)) != RESET) && ((SPI1->CR2 & SPI_CR2_ERRIE) != RESET))
-   {
-      /* SPI Overrun error interrupt occurred ----------------------------------*/
-      if ((SPI1->SR & SPI_SR_OVR) != RESET)
-      {
-         error_code=1;
-         i = SPI1->DR;
-         i = SPI1->SR;
-         return;
-      }
-
-      /* SPI Mode Fault error interrupt occurred -------------------------------*/
-      if ((SPI1->SR & SPI_SR_MODF) != RESET)
-      {
-         error_code=2;
-         i = SPI1->SR;
-         SPI1->CR1 &= ~SPI_CR1_SPE;
-      }
-
-      /* SPI Frame error interrupt occurred ------------------------------------*/
-      if ((SPI1->SR & SPI_SR_FRE) != RESET)
-      {
-         error_code=3;
-         i = SPI1->SR;
-      }
-
-      if (error_code != 0)
-      {
-         /* Disable all interrupts */
-         SPI1->CR2 &= ~(SPI_CR2_RXNEIE | SPI_CR2_TXEIE | SPI_CR2_ERRIE);
-         /* Call user error callback */
-         Error_Handler();
-      }
-    return;
-  }   
-}
-#else
 void SPI2_IRQHandler(void)
 {
    //int8_t i,error_code=0;
-   
+   uint32_t spixbase = 0x00;
+   spixbase = (uint32_t)SPI2; 
+   spixbase += 0x0C;
+  
    /* SPI in mode Receiver ----------------------------------------------------*/
    if //(((SPI2->SR & SPI_SR_OVR) == RESET) &&
       //((SPI2->SR  & SPI_SR_RXNE) != RESET) && ((SPI2->CR2  & SPI_CR2_RXNEIE) != RESET))
@@ -256,7 +202,6 @@ void SPI2_IRQHandler(void)
       else 
       {
          receive_cnt=0;
-         SPI2->CR2 &= ~SPI_CR2_RXNEIE;
       }
       return;
    }
@@ -265,12 +210,11 @@ void SPI2_IRQHandler(void)
    if //(((SPI2->SR & SPI_SR_TXE) != RESET) && ((SPI2->CR2 & SPI_CR2_TXEIE) != RESET))
 		  ((SPI2->SR & SPI_SR_TXE) != RESET)
    {
-      SPI2->DR = tx[sent_cnt];
+      *(__IO uint8_t *) spixbase = tx[sent_cnt];//SPI2->DR = tx[sent_cnt];
       if(sent_cnt<send_size-1)sent_cnt++;
       else 
       {
          sent_cnt=0;
-         SPI2->CR2 &= ~SPI_CR2_TXEIE;
       }
    }
 #if 0
@@ -313,5 +257,5 @@ void SPI2_IRQHandler(void)
    }   
 #endif
 }
-#endif
+
 
