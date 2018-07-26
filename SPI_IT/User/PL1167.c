@@ -1,6 +1,8 @@
-#include "main.h"
+#include "PL1167.h"
 extern void delay(__IO uint32_t delay_cnt);
-
+//-----------------------------------------------------------------------------
+//变量定义
+//-----------------------------------------------------------------------------
 unsigned int address_code;
 #ifdef Send_Mode
 unsigned char go_sleep,fun_code,data_code,flag_RFsend;
@@ -16,8 +18,8 @@ unsigned char Auto_Ack_Select=0;            // 自动应答开关
 unsigned int tempreg;
 unsigned char timeout_cnt;
 _Bool update;
-unsigned char tx[5],rx[5];
-unsigned char send_size,receive_size;
+//unsigned char t_1ms;
+unsigned char rx[10],tx[10],send_size,receive_size;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -46,42 +48,97 @@ void delay_msec(unsigned int x)
         }
 }
 
-
+#if 0
+//-----------------------------------------------------------------------------
+// SPI 写操作
+//-----------------------------------------------------------------------------
+void spi_write(unsigned char spi_bValue)
+{
+				uint32_t spixbase = 0x00;
+				spixbase = (uint32_t)SPI2; 
+				spixbase += 0x0C;		
+	SPICS_L;
+				while((SPI2->SR & SPI_SR_TXE)==0);//等待发送区空
+				*(__IO uint8_t *) spixbase = spi_bValue;//SPI2->DR=spi_bValue;	 	  		//发送一个字节
+				//while((SPI2->SR & SPI_SR_FTLVL)==0);
+}
+//-----------------------------------------------------------------------------
+// SPI 读操作
+//-----------------------------------------------------------------------------
+unsigned char   spi_read(void)
+{
+        unsigned char spi_bValue;
+	SPICS_L;
+        while((SPI2->SR  & SPI_SR_RXNE)==0);//等待接收完一个字节
+				spi_bValue=SPI2->DR;
+        return spi_bValue;
+}
+//-----------------------------------------------------------------------------
+// SPI 读写操作
+//-----------------------------------------------------------------------------
+unsigned char spi_write_read(unsigned char spi_tValue)
+{
+        unsigned char spi_rValue;
+				uint32_t spixbase = 0x00;
+				spixbase = (uint32_t)SPI2; 
+				spixbase += 0x0C;	
+	SPICS_L;
+				while((SPI2->SR & SPI_SR_TXE)==0);//等待发送区空
+	/****************************************************************************************************
+	 这里如果直接使用SPI2->DR=spi_tValue;虽然spi_tValue是一个字节，但是实际发送却是2个字节0x00+spi_tValue;
+	 改为*(__IO uint8_t *) spixbase = spi_tValue;发送正确。
+	*****************************************************************************************************/
+				tx = spi_tValue;//SPI2->DR=spi_tValue;	 	  		//发送一个字节	
+        while((SPI2->SR  & SPI_SR_RXNE)==0);//等待接收完一个字节
+				spi_rValue=rx;
+        return spi_rValue;
+}
+#endif
 //-----------------------------------------------------------------------------
 // SPI 16位寄存器写操作
 //-----------------------------------------------------------------------------
 void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 {
-   CS_L;
-        tx[0] = addr;
-        tx[1] = v1;
-        tx[2] = v2;
-        send_size=3; 
-   CS_H;
-   
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+        tx[0]=addr;//spi_write(addr);
+        tx[1]=v1;//spi_write(v1);
+        tx[2]=v2;//spi_write(v2);
+	send_size=3;			
+	receive_size=0;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;	
         if(addr < 0x20)
-                pdelay(RF_GAP); 
+                pdelay(RF_GAP);
+	///SPICS_H;
+	//SPI2->CR1 &= ~SPI_CR1_SPE;				
 }
+
 //-----------------------------------------------------------------------------
 // SPI 16位寄存器读操作
 //-----------------------------------------------------------------------------
 unsigned int Reg_read16(unsigned char addr)
 {
-        //unsigned char clr;
         unsigned int value =0;
-	
-   CS_L;
-   send_size=1; 
-   receive_size=2;
-        tx[0] = addr | REG_RD;
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+        tx[0] = addr | REG_RD;//spi_write(addr | REG_RD);
+	send_size=1;			
+	receive_size=0;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;		
         if(addr < 0x20)
         {
                 pdelay(RF_GAP);
         }
-        value = rx[0];
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+				tx[0] = 0xff;
+				tx[1] = 0xff;
+	send_size=2;			
+	receive_size=2;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;					
+        value = rx[0];//spi_read();
         value<<=8;
-        value |= rx[1];
-   CS_H;
+        value|=rx[1];//spi_read();
 
         return value;
 }
@@ -94,17 +151,32 @@ void GetReg7FromChip(void)
         gReg7_high= (unsigned char) ((temp & 0xff00) >> 8);
         gReg7_low = (unsigned char) (temp & 0x00ff);
 }
+//-----------------------------------------------------------------------------------
+// PL1167 频道设置函数
+// Frequency = 2402 + channel;
+// 最大值Frequency < 2480 MHz
+//-----------------------------------------------------------------------------------
+void Set_RF_Channel(unsigned char channel)
+{
+        GetReg7FromChip();
+        gReg7_low &= 0x80;
+        gReg7_low |= channel;
+        Reg_write16(0x07, gReg7_high, gReg7_low);
+}
+
 //-----------------------------------------------------------------------------
 // RF 初始化
 //-----------------------------------------------------------------------------
 void PL1167_Init(void)
 {
+
         RFRST_H;
         msec(10);
         RFRST_L;
         msec(10);
         RFRST_H;               //Enable PL1167
         msec(10);               //delay 5ms to let chip stable
+        //SPICLK_L;                 //set SPI clock to low
         Reg_write16(0x00,0x6f,0xe0);
         Reg_write16(0x01,0x56,0x81);
         Reg_write16(0x02,0x66,0x17);
@@ -141,8 +213,18 @@ void PL1167_Init(void)
         msec(100);              //delay 100ms to let chip for operation
         GetReg7FromChip();
 }
+
 void RF_EnterSleep(void)
 {
+/*	SPICS_L;
+    pdelay(10);
+    spi_write(35);
+    pdelay(5);
+    spi_write(0x43);
+    spi_write(0x80);
+    pdelay(5);
+    SPICS_H;
+    pdelay(5);	*/
         Reg_write16(0x23,0x43,0x80);
 }
 
@@ -161,15 +243,21 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
         unsigned char j;
 
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
-				
-   CS_L;
-        tx[0] = 0x32;     //Fill data to FIFO;
-        send_size=1; 
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+        tx[0] = 0x32;//spi_write(0x32);                                        //Fill data to FIFO;
+	send_size=1;			
+	receive_size=0;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;			
+  while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
         for(j=0; j<(bytes+1); j++)
         {
-                tx[j] = *ptr++;
+                tx[j] = *ptr++;//spi_write(*ptr++);
         }
-   CS_H;
+	send_size=bytes+1;			
+	receive_size=0;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;			
         Reg_write16(0x07, (0x00|0x01), gReg7_low&0x7f);//TX Enable
 //	pdelay(10);
         //refresh_watchdog;
@@ -193,7 +281,7 @@ void RX_packet(void)
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
 				
-   CS_H;
+				SPICS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -208,15 +296,31 @@ void RX_packet(void)
         };
 
 Had_Rec:
-   CS_L;
-        send_size=1;     
-        receive_size=2;        
-        tx[0] = 0x32 | REG_RD;     //Read FIFO datas
-        DAT[0] = rx[0];
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+        tx[0] = 0x32 | REG_RD;//spi_write(0x32 | REG_RD);               //Read FIFO datas
+	send_size=1;			
+	receive_size=0;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;			
+  while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
+				tx[0] = 0xff;
+	send_size=1;			
+	receive_size=1;
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;			
+  while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
+        DAT[0] = rx[0];//spi_read();		
         if(DAT[0]>20) DAT[0]=20;            //Maybe first Byte is error;
+        for(j=0; j<DAT[0]; j++)             // SPIF0 take 200us to read/write 33 bytes
+                tx[j] = 0xff;//spi_read();		
+	send_size=DAT[0];			
+	receive_size=DAT[0];
+	SPI2->CR1 |= SPI_CR1_SPE;
+	SPICS_L;			
+  while((SPI2->CR1 & SPI_CR1_SPE)!=0){}				
         for(j=1; j<(DAT[0]+1); j++)             // SPIF0 take 200us to read/write 33 bytes
-                DAT[j] = rx[j];
-   CS_H;
+                DAT[j] = rx[j-1];//spi_read();
+
 time_out:
         if(!timeout)                        //Check if the recevied data is valid;
         {
@@ -224,6 +328,17 @@ time_out:
         }
         else update =0;
 }
+
+//void PL1167_Init(void)
+//{
+//	unsigned char channel_temp;
+//	RF_init();									// 初始化 RF module;
+//	channel_temp=0x30;
+//	Set_RF_Channel(channel_temp);
+//	Auto_Ack();
+//	SetDatasetFirstByte();
+//}
+
 #ifdef Send_Mode
 void Send_DATA(unsigned char fun_code, unsigned char data_code)
 {
