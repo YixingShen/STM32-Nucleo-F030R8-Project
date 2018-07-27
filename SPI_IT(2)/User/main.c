@@ -179,7 +179,6 @@ void SPI2_IRQHandler(void)
    {
       rx[receive_cnt] = SPI2->DR;
 		  receive_cnt++;
-		  if(receive_cnt>=receive_size)receive_cnt=0;
    }
 
    /* SPI in mode Transmitter -------------------------------------------------*/
@@ -187,11 +186,14 @@ void SPI2_IRQHandler(void)
    {
       *(__IO uint8_t *) spixbase = tx[send_cnt];//SPI2->DR = tx;
 		  send_cnt++;
-		  if(send_cnt>=send_size)
-		  {
-				send_cnt=0;
-				SPICS_H;
-				SPI2->CR1 &= ~SPI_CR1_SPE;					
-			}
    }
+
+	if(send_cnt>=send_size)
+	{
+		send_cnt=0;
+		SPICS_H;
+		SPI2->CR1 &= ~SPI_CR1_SPE;					
+	}	 
+	if(receive_cnt>=receive_size)receive_cnt=0;
+	 
 }

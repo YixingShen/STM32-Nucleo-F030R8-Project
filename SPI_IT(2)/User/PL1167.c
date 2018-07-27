@@ -20,6 +20,7 @@ unsigned char timeout_cnt;
 _Bool update;
 //unsigned char t_1ms;
 unsigned char rx[10],tx[10],send_size,receive_size;
+extern unsigned char send_cnt,receive_cnt;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -57,6 +58,8 @@ void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
         tx[0]=addr;//spi_write(addr);
         tx[1]=v1;//spi_write(v1);
         tx[2]=v2;//spi_write(v2);
+	send_cnt=0;
+	receive_cnt=0;
 	send_size=3;			
 	receive_size=0;
 	SPI2->CR1 |= SPI_CR1_SPE;
@@ -76,23 +79,26 @@ unsigned int Reg_read16(unsigned char addr)
         unsigned int value =0;
 	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
         tx[0] = addr | REG_RD;//spi_write(addr | REG_RD);
+	send_cnt=0;
+	receive_cnt=0;		
 	send_size=1;			
 	receive_size=0;
 	SPI2->CR1 |= SPI_CR1_SPE;
 	SPICS_L;		
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
         if(addr < 0x20)
         {
                 pdelay(RF_GAP);
         }
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
 				tx[0] = 0xff;
 				tx[1] = 0xff;
+	send_cnt=0;
+	receive_cnt=0;				
 	send_size=2;			
 	receive_size=2;
 	SPI2->CR1 |= SPI_CR1_SPE;
 	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
         value = rx[0];//spi_read();
         value<<=8;
         value|=rx[1];//spi_read();
@@ -202,20 +208,24 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
 
         tx[0] = 0x32;//spi_write(0x32);                                        //Fill data to FIFO;
+	send_cnt=0;
+	receive_cnt=0;	
 	send_size=1;			
 	receive_size=0;
 	SPI2->CR1 |= SPI_CR1_SPE;
 	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
         for(j=0; j<(bytes+1); j++)
         {
                 tx[j] = *ptr++;//spi_write(*ptr++);
         }
+	send_cnt=0;
+	receive_cnt=0;				
 	send_size=bytes+1;			
 	receive_size=0;
 	SPI2->CR1 |= SPI_CR1_SPE;
 	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
         Reg_write16(0x07, (0x00|0x01), gReg7_low&0x7f);//TX Enable
 //	pdelay(10);
         //refresh_watchdog;
