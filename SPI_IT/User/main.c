@@ -292,6 +292,7 @@ void RegWrite(uint8_t step)
 				break;
 			//获取寄存器 7 的值
 			case 31:
+                //不能用delay(100)，因为在SPI中断中，无法执行SysTick_Handler中断，会一直卡在该函数中，退不出。
 				delay_msec(100);              //delay 100ms to let chip for operation
 				tx[0]=0x87;
 				tx[1]=0xff; 
