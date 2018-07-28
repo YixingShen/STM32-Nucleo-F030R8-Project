@@ -1,7 +1,7 @@
 #include "main.h"
 
 uint8_t rx[5],tx[5],send_size,recv_size;
-uint8_t rf_init_step,rf_init_step_last,gReg7_high,gReg7_low;
+uint8_t rf_init_step,gReg7_high,gReg7_low;
 uint8_t send_cnt,recv_cnt;
 
 __IO uint32_t uwTick;
@@ -129,8 +129,11 @@ void delay_msec(unsigned int x)
 }
 void RegWrite(uint8_t step)
 {
+      //SPICS_H;
 		send_size=3;
 		recv_size=3;  		
+      pdelay(35); 
+      //SPICS_L;
 		switch(step)
 		{
 			case 0:
@@ -292,13 +295,8 @@ void RegWrite(uint8_t step)
 				break;
 			//获取寄存器 7 的值
 			case 31:
-				if(rf_init_step_last==30)
-			  {
-					pdelay(35);    
-					SPICS_H;
-					//rf_init_step_last=rf_init_step;	
-					delay_msec(100);              //delay 100ms to let chip for operation
-				}
+				SPICS_H;
+				delay_msec(100);              //delay 100ms to let chip for operation
 				SPICS_L;
 				tx[0]=0x87;
 				//tx[1]=0xff; 
@@ -307,28 +305,16 @@ void RegWrite(uint8_t step)
 				recv_size=1;  
 				break;	
 			case 32:
-				if(rf_init_step_last==31)
-			  {
-					//rf_init_step_last=rf_init_step;	
-					pdelay(35);              //delay 100ms to let chip for operation
-				}
 				tx[0]=0xff; 
 				tx[1]=0xff;  				
 				send_size=2;
 				recv_size=2;  				
 				break;
-			case 33:
-				if(rf_init_step_last==32)
-			  {
-					//rf_init_step_last=rf_init_step;	
-					pdelay(100);              //delay 100ms to let chip for operation
-				}				
+			case 33:	
 				SPI2->CR1 &= ~SPI_CR1_SPE;
-				SPICS_H;			
-				send_size=2;
-				recv_size=2;
-        gReg7_high= rx[0];
-        gReg7_low = rx[1];       
+				SPICS_H;
+            gReg7_high= rx[0];
+            gReg7_low = rx[1];       
 				break;	
 			default:
 				tx[0]=0xff;				
@@ -336,7 +322,6 @@ void RegWrite(uint8_t step)
 				recv_size=1;  				
 				break;
 		}	
-		//rf_init_step_last=rf_init_step;	
 }
 
 void PL1167_Init(void)
@@ -388,17 +373,17 @@ void SPI2_IRQHandler(void)
 	spixbase = (uint32_t)SPI2; 
 	spixbase += 0x0C;	
 	
-	RegWrite(rf_init_step);
+	if(send_cnt==0)RegWrite(rf_init_step);
 	
 	/* SPI in mode Receiver ----------------------------------------------------*/
 	if ((SPI2->SR  & SPI_SR_RXNE) != RESET)
 	{
-		rx[recv_cnt]= SPI2->DR;
+		rx[recv_cnt]= *(__IO uint8_t *) spixbase;//SPI2->DR;
 		recv_cnt++;
 		if(recv_cnt>=recv_size)
-    {
-			recv_cnt=0;
-		}
+      {
+         recv_cnt=0;
+      }
 	}
 
 	/* SPI in mode Transmitter -------------------------------------------------*/
@@ -412,6 +397,4 @@ void SPI2_IRQHandler(void)
 			rf_init_step++;
 		}
 	}
-	
-	rf_init_step_last=rf_init_step;	
 }
