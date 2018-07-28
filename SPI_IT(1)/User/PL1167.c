@@ -19,8 +19,7 @@ unsigned int tempreg;
 unsigned char timeout_cnt;
 _Bool update;
 //unsigned char t_1ms;
-unsigned char rx[10],tx[10],send_size,receive_size;
-extern unsigned char send_cnt,receive_cnt;
+uint8_t rx[6],tx[6],send_size,recv_size;
 //-----------------------------------------------------------------------------
 // Function PROTOTYPES
 //-----------------------------------------------------------------------------
@@ -54,21 +53,15 @@ void delay_msec(unsigned int x)
 //-----------------------------------------------------------------------------
 void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 {
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
-        tx[0]=addr;//spi_write(addr);
-        tx[1]=v1;//spi_write(v1);
-        tx[2]=v2;//spi_write(v2);
-	send_cnt=0;
-	receive_cnt=0;
-	send_size=3;			
-	receive_size=0;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;	
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
-        if(addr < 0x20)
-                pdelay(RF_GAP);
-	///SPICS_H;
-	//SPI2->CR1 &= ~SPI_CR1_SPE;				
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        tx[0]=addr;
+        tx[1]=v1;
+        tx[2]=v2;
+        send_size=3;
+        recv_size=3;
+    SPICS_L;		
+	//使能SPI2
+	SPI2->CR1 |= SPI_CR1_SPE;        
 }
 
 //-----------------------------------------------------------------------------
@@ -77,32 +70,14 @@ void Reg_write16(unsigned char addr, unsigned char v1, unsigned char v2)
 unsigned int Reg_read16(unsigned char addr)
 {
         unsigned int value =0;
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
-        tx[0] = addr | REG_RD;//spi_write(addr | REG_RD);
-	send_cnt=0;
-	receive_cnt=0;		
-	send_size=1;			
-	receive_size=0;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;		
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
-        if(addr < 0x20)
-        {
-                pdelay(RF_GAP);
-        }
-				tx[0] = 0xff;
-				tx[1] = 0xff;
-	send_cnt=0;
-	receive_cnt=0;				
-	send_size=2;			
-	receive_size=2;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
-        value = rx[0];//spi_read();
+        
+    Reg_write16(addr | REG_RD, 0xff, 0xff);
+    
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        value = rx[1];
         value<<=8;
-        value|=rx[1];//spi_read();
-   
+        value|=rx[2];
+        
         return value;
 }
 //获取寄存器 7 的值
@@ -139,7 +114,6 @@ void PL1167_Init(void)
         msec(10);
         RFRST_H;               //Enable PL1167
         msec(10);               //delay 5ms to let chip stable
-        //SPICLK_L;                 //set SPI clock to low
         Reg_write16(0x00,0x6f,0xe0);
         Reg_write16(0x01,0x56,0x81);
         Reg_write16(0x02,0x66,0x17);
@@ -179,15 +153,6 @@ void PL1167_Init(void)
 
 void RF_EnterSleep(void)
 {
-/*	SPICS_L;
-    pdelay(10);
-    spi_write(35);
-    pdelay(5);
-    spi_write(0x43);
-    spi_write(0x80);
-    pdelay(5);
-    SPICS_H;
-    pdelay(5);	*/
         Reg_write16(0x23,0x43,0x80);
 }
 
@@ -206,28 +171,21 @@ void TX_packet(unsigned char *ptr,unsigned char bytes) //only tx loop
         unsigned char j;
 
         Reg_write16(0x34,0x80,0);// reset TX FIFO point
-
-        tx[0] = 0x32;//spi_write(0x32);                                        //Fill data to FIFO;
-	send_cnt=0;
-	receive_cnt=0;	
-	send_size=1;			
-	receive_size=0;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+    
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        tx[0]=0x32;
         for(j=0; j<(bytes+1); j++)
         {
-                tx[j] = *ptr++;//spi_write(*ptr++);
+                tx[j+1]=*ptr++;
         }
-	send_cnt=0;
-	receive_cnt=0;				
-	send_size=bytes+1;			
-	receive_size=0;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
+        send_size=bytes+2;
+        recv_size=bytes+2;
+    SPICS_L;		
+	//使能SPI2
+	SPI2->CR1 |= SPI_CR1_SPE;         
+        
         Reg_write16(0x07, (0x00|0x01), gReg7_low&0x7f);//TX Enable
-//	pdelay(10);
+
         //refresh_watchdog;
         while(PKT_IS_LOW) {LED2_ON;}
 				LED2_OFF;
@@ -249,7 +207,7 @@ void RX_packet(void)
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
 				
-				SPICS_H;
+        SPICS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -264,30 +222,32 @@ void RX_packet(void)
         };
 
 Had_Rec:
-	while((SPI2->CR1 & SPI_CR1_SPE)!=0){}
-        tx[0] = 0x32 | REG_RD;//spi_write(0x32 | REG_RD);               //Read FIFO datas
-	send_size=1;			
-	receive_size=0;
+        //Read FIFO datas
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        tx[0]=0x32 | REG_RD;
+        tx[1]=0xff;
+        send_size=2;
+        recv_size=2;
+    SPICS_L;		
+	//使能SPI2
 	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
-				tx[0] = 0xff;
-	send_size=1;			
-	receive_size=1;
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}		
-        DAT[0] = rx[0];//spi_read();		
+        
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        DAT[0] = rx[1];
         if(DAT[0]>20) DAT[0]=20;            //Maybe first Byte is error;
         for(j=0; j<DAT[0]; j++)             // SPIF0 take 200us to read/write 33 bytes
-                tx[j] = 0xff;//spi_read();		
-	send_size=DAT[0];			
-	receive_size=DAT[0];
-	SPI2->CR1 |= SPI_CR1_SPE;
-	SPICS_L;			
-   while((SPI2->CR1 & SPI_CR1_SPE)!=0){}				
+        {
+            tx[j] = 0xff;
+        }
+    SPICS_L;		
+	//使能SPI2
+	SPI2->CR1 |= SPI_CR1_SPE; 
+        
+    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完  
         for(j=1; j<(DAT[0]+1); j++)             // SPIF0 take 200us to read/write 33 bytes
-                DAT[j] = rx[j-1];//spi_read();
+        {
+            DAT[j] = rx[j-1];
+        }        
 
 time_out:
         if(!timeout)                        //Check if the recevied data is valid;

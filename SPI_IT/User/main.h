@@ -3,6 +3,9 @@
 
 #include "stm32f0xx.h"
 
+//Address code
+#define ADD_INI   0XAF89
+
 //SPI for PL1167
 //PKT	input
 #define PKT_IS_LOW   (GPIOA->IDR & GPIO_IDR_1)==0//PA1==0

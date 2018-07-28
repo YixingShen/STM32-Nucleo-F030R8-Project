@@ -3,10 +3,10 @@
 
 #include "stm32f0xx.h"
 
-extern unsigned char rx[10],tx[10],send_size,receive_size;
-
 #define Send_Mode
 //#define Receive_Mode
+
+extern uint8_t rx[6],tx[6],send_size,recv_size;
 
 extern unsigned int address_code;
 #ifdef Send_Mode
