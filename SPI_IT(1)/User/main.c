@@ -99,22 +99,25 @@ void SPI_init(void)
 
 int main(void)
 {
+#ifdef Send_Mode    
 	uint8_t key_press_cnt;
-	
+#endif	
 	/*Configure the SysTick to have interrupt in 1ms time basis*/
 	SysTick_Config(8000);//使用HSI=8MHz作为系统时钟
 
 	LED_init();
 	Button_init();	
 	SPI_init();
-	
+#ifdef Send_Mode	
 	address_code=ADD_INI;
 	fun_code=0;
 	data_code=0;
+#endif
 	PL1167_Init();
 
 	while(1)
 	{
+#ifdef Send_Mode//只发
 		if(KEY_PRESS)//按键按下
 		{
 			if(key_press_cnt>3)
@@ -131,10 +134,8 @@ int main(void)
 			}
 			else key_press_cnt++;
 		}			
-		else key_press_cnt=0;		
-		
-		
-#ifdef Send_Mode//只发
+		else key_press_cnt=0;	        
+        
 		if(flag_RFsend)
 		{
 			flag_RFsend=0;

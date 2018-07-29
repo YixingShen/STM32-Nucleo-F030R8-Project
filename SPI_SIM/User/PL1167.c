@@ -264,11 +264,13 @@ void RX_packet(void)
 						timeout_cnt++;
 						if(timeout_cnt>=10)
 						{
+                                LED2_OFF;
 								timeout=1;
 								goto time_out;
 						}
 						else timeout=0;
         };
+        LED2_ON;
 
 Had_Rec:
         spi_write(0x32 | REG_RD);               //Read FIFO datas

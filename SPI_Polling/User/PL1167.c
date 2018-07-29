@@ -3,8 +3,8 @@ extern void delay(__IO uint32_t delay_cnt);
 //-----------------------------------------------------------------------------
 //变量定义
 //-----------------------------------------------------------------------------
-unsigned int address_code;
 #ifdef Send_Mode
+unsigned int address_code;
 unsigned char go_sleep,fun_code,data_code,flag_RFsend;
 #endif
 #ifdef Receive_Mode
@@ -89,7 +89,7 @@ unsigned char spi_write_read(unsigned char spi_tValue)
 	*****************************************************************************************************/
 				*(__IO uint8_t *) spixbase = spi_tValue;//SPI2->DR=spi_tValue;	 	  		//发送一个字节	
         while((SPI2->SR  & SPI_SR_RXNE)==0);//等待接收完一个字节
-				spi_rValue=SPI2->DR;
+				spi_rValue=*(__IO uint8_t *) spixbase;//SPI2->DR;
         return spi_rValue;
 }
 //-----------------------------------------------------------------------------
@@ -255,7 +255,7 @@ void RX_packet(void)
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
 				
-				SPICS_H;
+        SPICS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -263,11 +263,13 @@ void RX_packet(void)
 						timeout_cnt++;
 						if(timeout_cnt>=10)
 						{
+                                LED2_OFF;
 								timeout=1;
 								goto time_out;
 						}
 						else timeout=0;
         };
+        LED2_ON;
 
 Had_Rec:
         spi_write_read(0x32 | REG_RD);//spi_write(0x32 | REG_RD);               //Read FIFO datas

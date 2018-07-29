@@ -3,11 +3,11 @@
 
 #include "stm32f0xx.h"
 
-#define Send_Mode
-//#define Receive_Mode
+//#define Send_Mode
+#define Receive_Mode
 
-extern unsigned int address_code;
 #ifdef Send_Mode
+extern unsigned int address_code;
 extern unsigned char go_sleep,fun_code,data_code,flag_RFsend;
 #endif
 #ifdef Receive_Mode

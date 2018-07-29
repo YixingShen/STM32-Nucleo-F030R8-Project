@@ -3,8 +3,8 @@ extern void delay(__IO uint32_t delay_cnt);
 //-----------------------------------------------------------------------------
 //变量定义
 //-----------------------------------------------------------------------------
-unsigned int address_code;
 #ifdef Send_Mode
+unsigned int address_code;
 unsigned char go_sleep,fun_code,data_code,flag_RFsend;
 #endif
 #ifdef Receive_Mode
@@ -215,11 +215,13 @@ void RX_packet(void)
 						timeout_cnt++;
 						if(timeout_cnt>=10)
 						{
+                                LED2_OFF;
 								timeout=1;
 								goto time_out;
 						}
 						else timeout=0;
         };
+        LED2_ON;
 
 Had_Rec:
         //Read FIFO datas
