@@ -8,7 +8,7 @@ unsigned int address_code;
 unsigned char go_sleep,fun_code,data_code,flag_RFsend;
 #endif
 #ifdef Receive_Mode
-unsigned char fun_code_rec,data_code_rec;
+unsigned char fun_code_rec,data_code_rec,flag_recv;
 unsigned int address_code_rec;
 #endif
 
@@ -203,11 +203,13 @@ void RX_packet(void)
 {
         unsigned char j;
         unsigned char timeout=0;
-
+        flag_recv=0;
+    
         Reg_write16(0x34,0,0x80);                   // reset RX FIFO point
         Reg_write16(0x07, 0x00, (gReg7_low|0x80));  //enter RX mode
-				
-        SPICS_H;
+		
+        while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        //SPICS_H;
         timeout_cnt=0;//Set timeout;
         while (PKT_IS_LOW)
         {
@@ -225,7 +227,8 @@ void RX_packet(void)
 
 Had_Rec:
         //Read FIFO datas
-    while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+    //while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        flag_recv=1;
         tx[0]=0x32 | REG_RD;
         tx[1]=0xff;
         send_size=2;
@@ -233,23 +236,26 @@ Had_Rec:
     SPICS_L;		
 	//使能SPI2
 	SPI2->CR1 |= SPI_CR1_SPE;
-        
+
     while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完
+        flag_recv=0;//加上它，接收完DAT[0]个数据后SCK拉高，MISO为低电平；否则，接收完DAT[0]个数据后SCK依然保持低电平，而MISO为高电平
         DAT[0] = rx[1];
         if(DAT[0]>20) DAT[0]=20;            //Maybe first Byte is error;
         for(j=0; j<DAT[0]; j++)             // SPIF0 take 200us to read/write 33 bytes
         {
             tx[j] = 0xff;
         }
+        send_size=DAT[0];
+        recv_size=DAT[0];        
     SPICS_L;		
 	//使能SPI2
 	SPI2->CR1 |= SPI_CR1_SPE; 
-        
+ 
     while((SPI2->CR1 & SPI_CR1_SPE)!=0){};//等待发送接收完  
         for(j=1; j<(DAT[0]+1); j++)             // SPIF0 take 200us to read/write 33 bytes
         {
             DAT[j] = rx[j-1];
-        }        
+        }      
 
 time_out:
         if(!timeout)                        //Check if the recevied data is valid;

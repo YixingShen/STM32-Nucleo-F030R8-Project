@@ -13,7 +13,7 @@ extern unsigned int address_code;
 extern unsigned char go_sleep,fun_code,data_code,flag_RFsend;
 #endif
 #ifdef Receive_Mode
-extern unsigned char fun_code_rec,data_code_rec;
+extern unsigned char fun_code_rec,data_code_rec,flag_recv;
 extern unsigned int address_code_rec;
 #endif
 

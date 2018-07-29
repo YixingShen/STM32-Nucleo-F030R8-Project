@@ -190,7 +190,10 @@ void SPI2_IRQHandler(void)
 		{
 			send_cnt=0;
             SPI2->CR1 &= ~SPI_CR1_SPE;
-            SPICS_H;
+#ifdef Receive_Mode                
+            if(flag_recv==0)//在接收数据过程中将CS拉高，造成接收数据不正确
+#endif
+                SPICS_H;
 		}
 	}
 }
