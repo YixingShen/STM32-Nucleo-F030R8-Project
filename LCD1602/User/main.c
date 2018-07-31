@@ -1,4 +1,9 @@
 #include "main.h"
+#include "1602.h"
+#include "string.h"
+
+char const table1[]="LCD1602 check ok\0"; //要显示的第一行内容放入数组table1
+char const table2[]="study up\0";         //要显示的第二行内容放入数组table2
 
 __IO uint32_t uwTick;
 
@@ -87,47 +92,6 @@ void LCD1602_WriteData(uint8_t addr)
     E_L;    
 }
 
-void lcd_dis_self()
-{
-	unsigned char i = 6;
-
-	while((i < 7) && (i > 1))
-	{
-        LCD1602_WriteCmd(0x40+i);//自定义字符的第几行
-        LCD1602_WriteData(0x1f);//设置自定义字符第几行的内容
-        LCD1602_WriteCmd(0x40+0x80);//显示在显示屏上的第二行的第一个
-        LCD1602_WriteData(0x0);//显示的是自定义字符的第1个
-        delay(500);
-		i --;
-	}
-}
-
-void my_self()
-{
-			LCD1602_WriteCmd(0x40);//表示设置的是第一个自定义字符
-
-			LCD1602_WriteData(0x06);//显示的是一个电池的样子
-
-			LCD1602_WriteData(0x1f);
-
-			LCD1602_WriteData(0x11);
-
-			LCD1602_WriteData(0x11);
-
-			LCD1602_WriteData(0x11);
-
-			LCD1602_WriteData(0x11);
-
-			LCD1602_WriteData(0x1f);
-
-			LCD1602_WriteData(0x00);
-
-	
-			LCD1602_WriteCmd(0x40+0x80);
-			LCD1602_WriteData(0x0);
-			delay(500);	
-			lcd_dis_self();
-}
 void LCD1602_init(void)
 {
     /*********************************************************************
@@ -173,25 +137,35 @@ void LCD1602_init(void)
 	GPIOF->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);   //PF0 PF1推挽输出
 	GPIOF->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0; //PF0 PF1上拉      
     
-    LCD1602_WriteCmd(0x38);//设置工作方式，8位数据接口，两行显示，5*8点阵字符
+    LCD1602_WriteCmd(Function_Set+Data_Interface_8+Double_Line_Display);//设置工作方式，8位数据接口，两行显示，5*8点阵字符
     delay(5);
-    LCD1602_WriteCmd(0x38);
-    delay(5);    
-    LCD1602_WriteCmd(0x38);
-    delay(5);    
-    LCD1602_WriteCmd(0x38);
-    delay(5);    
-    LCD1602_WriteCmd(0x38);
-    delay(5);        
-    LCD1602_WriteCmd(0x08);//关显示
+    LCD1602_WriteCmd(Display_OnOff);//关显示
     delay(5);
-    LCD1602_WriteCmd(0x01);//关清屏
+    LCD1602_WriteCmd(Clear_Screen);//清屏
     delay(5);
-    LCD1602_WriteCmd(0x06);//写入新数据之后光标后移，显示移动
+    LCD1602_WriteCmd(Mode_Set+Cursor_Shift_right);//写入新数据之后光标右移，显示不移动
     delay(5);
-    LCD1602_WriteCmd(0x0c);//显示开，光标不显示，光标不闪烁
+    LCD1602_WriteCmd(Display_OnOff+Display_On);//显示开，光标不显示，光标不闪烁
     delay(5);
-    my_self();
+}
+
+void LCD1602_Display(void)
+{
+    uint8_t i;
+    //第一行显示
+    LCD1602_WriteCmd(Set_DDRAM_Address);//设定DDRAM地址，即00H，第一行第一位
+    for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
+    { 
+        LCD1602_WriteData(table1[i]);           
+        delay(5); 
+    }
+    //第二行显示
+    LCD1602_WriteCmd(Set_DDRAM_Address+0x40);//设定DDRAM地址，即40H，第二行第一位
+    for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
+    { 
+        LCD1602_WriteData(table2[i]);           
+        delay(5); 
+    }    
 }
 
 int main(void)
@@ -204,6 +178,7 @@ int main(void)
 	LED_init();
 	Button_init();	
     LCD1602_init();
+    LCD1602_Display();
     
 	while(1)
 	{
@@ -214,7 +189,7 @@ int main(void)
 				key_press_cnt=0;
 			}
 			else key_press_cnt++;
-		}			
+		}
 		else key_press_cnt=0;	        
 
         LED2_FLASH;
