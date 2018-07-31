@@ -21,9 +21,18 @@ void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
    while((uwTick-tickstart)<wait){}
 }
 
-void delay2(__IO uint32_t delay_cnt)
+void delay_20us(void)
 {
-	while(delay_cnt--);
+        uint8_t i;
+        for(i=0; i<45; i++) ;
+}
+
+void delay2(uint16_t delay)
+{
+	while(delay--)
+	{
+		delay_20us();
+	};
 }
 
 void LED_init(void)
@@ -45,7 +54,7 @@ void Button_init(void)
 
 void LCD1602_WriteCmd(uint8_t cmd)//写命令
 {
-    //E_H;
+    E_L;
     RS_L;//命令
     RW_L;//写
     if(cmd&0x01)D0_H;
@@ -64,33 +73,35 @@ void LCD1602_WriteCmd(uint8_t cmd)//写命令
     else D6_L;
     if(cmd&0x80)D7_H;
     else D7_L;
-    delay(2);//delay2(5000);
+    delay(2);
     E_H;
+    delay(2);
     E_L;       
 }
-void LCD1602_WriteData(uint8_t addr)
+void LCD1602_WriteData(uint8_t data)
 {
-    //E_H;
+    E_L;
     RS_H;//数据
     RW_L;//写
-    if(addr&0x01)D0_H;
+    if(data&0x01)D0_H;
     else D0_L;
-    if(addr&0x02)D1_H;
+    if(data&0x02)D1_H;
     else D1_L;
-    if(addr&0x04)D2_H;
+    if(data&0x04)D2_H;
     else D2_L;
-    if(addr&0x08)D3_H;
+    if(data&0x08)D3_H;
     else D3_H;
-    if(addr&0x10)D4_H;
+    if(data&0x10)D4_H;
     else D4_H;
-    if(addr&0x20)D5_H;
+    if(data&0x20)D5_H;
     else D5_H;
-    if(addr&0x40)D6_H;
+    if(data&0x40)D6_H;
     else D6_L;
-    if(addr&0x80)D7_H;
+    if(data&0x80)D7_H;
     else D7_L;
-    delay(2);//delay2(5000);
+    delay(2);
     E_H;
+    delay(2);
     E_L;    
 }
 
@@ -99,7 +110,7 @@ void LCD1602_init(void)
     /*********************************************************************
     PIN1: GND
     PIN2: VCC
-    PIN3: V0(偏压信号,调对比度;接VCC对比度最弱,接GND时对比度最高)                  PB0
+    PIN3: V0(偏压信号,调对比度;接VCC对比度最弱,接GND时对比度最高)                  //PB0
     PIN4: RS(1-数据 0-命令)                       NetCN7_36: PC1
     PIN5: RW(1-读 0-写)                           NetCN7_38: PC0
     PIN6: E(高电平跳变为低电平时，执行命令)       PB7
@@ -121,10 +132,9 @@ void LCD1602_init(void)
 	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_0 | GPIO_PUPDR_PUPDR1_0; //PA1 PA4上拉       
     
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
-	GPIOB->MODER |=GPIO_MODER_MODER7_0 | GPIO_MODER_MODER0_0;  //PB0 PB7输出
-	GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_7 | GPIO_OTYPER_OT_0);   //PB0 PB7推挽输出
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR7_0 | GPIO_PUPDR_PUPDR0_0; //PB0 PB7上拉  
-    V0_L;//PB0=0
+	GPIOB->MODER |=GPIO_MODER_MODER7_0;  //PB7输出
+	GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_7);   //PB7推挽输出
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR7_0; //PB7上拉  
     
     RCC->AHBENR |= RCC_AHBENR_GPIOCEN;  //打开Port C时钟
 	GPIOC->MODER |= GPIO_MODER_MODER15_0 | GPIO_MODER_MODER14_0 | GPIO_MODER_MODER3_0 
@@ -138,17 +148,12 @@ void LCD1602_init(void)
 	GPIOF->MODER |=GPIO_MODER_MODER1_0 | GPIO_MODER_MODER0_0;  //PF0 PF1输出
 	GPIOF->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);   //PF0 PF1推挽输出
 	GPIOF->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0; //PF0 PF1上拉      
-    
+       
     LCD1602_WriteCmd(Function_Set+Data_Interface_8+Double_Line_Display);//设置工作方式，8位数据接口，两行显示，5*8点阵字符
-    delay(10);
     LCD1602_WriteCmd(Display_OnOff);//关显示
-    delay(10);
     LCD1602_WriteCmd(Clear_Screen);//清屏
-    delay(10);
     LCD1602_WriteCmd(Mode_Set+Cursor_Shift_right);//写入新数据之后光标右移，显示不移动
-    delay(10);
     LCD1602_WriteCmd(Display_OnOff+Display_On);//显示开，光标不显示，光标不闪烁
-    delay(10);
 }
 
 void LCD1602_Display(void)
@@ -159,14 +164,14 @@ void LCD1602_Display(void)
     for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
     { 
         LCD1602_WriteData(table1[i]);           
-        delay(50); 
+        delay(2); 
     }
     //第二行显示
     LCD1602_WriteCmd(Set_DDRAM_Address+0x40);//设定DDRAM地址，即40H，第二行第一位
-    for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
+    for(i=0;i<strlen(table2);i++)     //将table1[]中的数据依次写入1602显示 
     { 
         LCD1602_WriteData(table2[i]);           
-        delay(50); 
+        delay(2); 
     }    
 }
 
@@ -180,6 +185,7 @@ int main(void)
 	LED_init();
 	Button_init();	
     LCD1602_init();
+    delay(5);
     LCD1602_Display();
     
 	while(1)
@@ -208,3 +214,4 @@ void SysTick_Handler(void)
 {
    uwTick++;
 }
+

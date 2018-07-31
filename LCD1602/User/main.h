@@ -9,8 +9,8 @@
 #define KEY_RELEASE (GPIOC->IDR & GPIO_IDR_13)!=0
 
 //V0
-#define V0_H     GPIOB->ODR |= GPIO_ODR_0
-#define V0_L     GPIOB->ODR &= ~GPIO_ODR_0
+//#define V0_H     GPIOB->ODR |= GPIO_ODR_0
+//#define V0_L     GPIOB->ODR &= ~GPIO_ODR_0
 //RS
 #define RS_H     GPIOC->ODR |= GPIO_ODR_1
 #define RS_L     GPIOC->ODR &= ~GPIO_ODR_1
