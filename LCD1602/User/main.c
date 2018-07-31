@@ -45,7 +45,7 @@ void Button_init(void)
 
 void LCD1602_WriteCmd(uint8_t cmd)//写命令
 {
-    E_H;
+    //E_H;
     RS_L;//命令
     RW_L;//写
     if(cmd&0x01)D0_H;
@@ -64,12 +64,13 @@ void LCD1602_WriteCmd(uint8_t cmd)//写命令
     else D6_L;
     if(cmd&0x80)D7_H;
     else D7_L;
-    delay2(10000);
+    delay(2);//delay2(5000);
+    E_H;
     E_L;       
 }
 void LCD1602_WriteData(uint8_t addr)
 {
-    E_H;
+    //E_H;
     RS_H;//数据
     RW_L;//写
     if(addr&0x01)D0_H;
@@ -88,7 +89,8 @@ void LCD1602_WriteData(uint8_t addr)
     else D6_L;
     if(addr&0x80)D7_H;
     else D7_L;
-    delay2(1000);
+    delay(2);//delay2(5000);
+    E_H;
     E_L;    
 }
 
@@ -138,15 +140,15 @@ void LCD1602_init(void)
 	GPIOF->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0; //PF0 PF1上拉      
     
     LCD1602_WriteCmd(Function_Set+Data_Interface_8+Double_Line_Display);//设置工作方式，8位数据接口，两行显示，5*8点阵字符
-    delay(5);
+    delay(10);
     LCD1602_WriteCmd(Display_OnOff);//关显示
-    delay(5);
+    delay(10);
     LCD1602_WriteCmd(Clear_Screen);//清屏
-    delay(5);
+    delay(10);
     LCD1602_WriteCmd(Mode_Set+Cursor_Shift_right);//写入新数据之后光标右移，显示不移动
-    delay(5);
+    delay(10);
     LCD1602_WriteCmd(Display_OnOff+Display_On);//显示开，光标不显示，光标不闪烁
-    delay(5);
+    delay(10);
 }
 
 void LCD1602_Display(void)
@@ -157,14 +159,14 @@ void LCD1602_Display(void)
     for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
     { 
         LCD1602_WriteData(table1[i]);           
-        delay(5); 
+        delay(50); 
     }
     //第二行显示
     LCD1602_WriteCmd(Set_DDRAM_Address+0x40);//设定DDRAM地址，即40H，第二行第一位
     for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
     { 
         LCD1602_WriteData(table2[i]);           
-        delay(5); 
+        delay(50); 
     }    
 }
 
