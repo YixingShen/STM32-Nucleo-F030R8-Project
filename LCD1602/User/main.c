@@ -174,8 +174,11 @@ void LCD1602_init(void)
 
 void LCD1602_Display(void)
 {
-    //DDRAM(Display Data RAM)就是显示数据RAM，用来寄存待显示的字符代码，共80个字节。
-    //DDRAM寄存的字符来源有2个：CGROM或CGRAM。
+    /*DDRAM(Display Data RAM)就是显示数据RAM，用来寄存待显示的字符代码，共80个字节。
+    DDRAM有80个字节，既是有80个显示地址（对应80个显示的位置，第一行00H~27H，第二行40H~67H），可以存放80个字符。
+    而1602只有16x2个位置可供显示字符，所以只有写在范围内的字符才能显示出来（第一行00H~0FH，第二行40H~4FH）。
+    写在范围外的字符，可以使用“光标或显示移动指令”，来移动显示。
+    DDRAM寄存的字符来源有2个：CGROM或CGRAM。*/
     //显示字符产生器CGROM(Character Generator ROM)中存储的字符
     uint8_t i;
 
