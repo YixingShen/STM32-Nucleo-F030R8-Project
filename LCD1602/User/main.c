@@ -5,6 +5,15 @@
 char const table1[]="LCD1602 check ok\0"; //要显示的第一行内容放入数组table1
 char const table2[]="study up\0";         //要显示的第二行内容放入数组table2
 
+char const Heart[]={0x03,0x07,0x0f,0x1f,0x1f,0x1f,0x1f,0x1f, 
+                    0x18,0x1E,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f, 
+                    0x07,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f, 
+                    0x10,0x18,0x1c,0x1E,0x1E,0x1E,0x1E,0x1E, 
+                    0x0f,0x07,0x03,0x01,0x00,0x00,0x00,0x00, 
+                    0x1f,0x1f,0x1f,0x1f,0x1f,0x0f,0x07,0x01, 
+                    0x1f,0x1f,0x1f,0x1f,0x1f,0x1c,0x18,0x00, 
+                    0x1c,0x18,0x10,0x00,0x00,0x00,0x00,0x00};//心形符
+
 __IO uint32_t uwTick;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
@@ -19,20 +28,6 @@ void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
    }
   
    while((uwTick-tickstart)<wait){}
-}
-
-void delay_20us(void)
-{
-        uint8_t i;
-        for(i=0; i<45; i++) ;
-}
-
-void delay2(uint16_t delay)
-{
-	while(delay--)
-	{
-		delay_20us();
-	};
 }
 
 void LED_init(void)
@@ -158,6 +153,7 @@ void LCD1602_init(void)
 void LCD1602_Display(void)
 {
     uint8_t i;
+#if 0
     //第一行显示
     LCD1602_WriteCmd(Set_DDRAM_Address);//设定DDRAM地址，即00H，第一行第一位
     for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
@@ -166,12 +162,34 @@ void LCD1602_Display(void)
         delay(2); 
     }
     //第二行显示
-    LCD1602_WriteCmd(Set_DDRAM_Address+0x40);//设定DDRAM地址，即40H，第二行第一位
+    LCD1602_WriteCmd(Set_DDRAM_Address+0x40+4);//设定DDRAM地址，即40H，第二行第一位
     for(i=0;i<strlen(table2);i++)     //将table1[]中的数据依次写入1602显示 
     { 
         LCD1602_WriteData(table2[i]);           
         delay(2); 
     }    
+#else
+    LCD1602_WriteCmd(Set_CGRAM_Address);//设置CGRAM地址
+    for(i=0;i<64;i++)    
+    { 
+        LCD1602_WriteData(Heart[i]);           
+        delay(2); 
+    }    
+    //第一行显示 
+    LCD1602_WriteCmd(Set_DDRAM_Address+5);
+    for(i=0;i<4;i++)
+    { 
+        LCD1602_WriteData(i);           
+        delay(2); 
+    }
+    //第二行显示
+    LCD1602_WriteCmd(Set_DDRAM_Address+0x40+5);
+    for(i=4;i<8;i++)
+    { 
+        LCD1602_WriteData(i);           
+        delay(2); 
+    }
+#endif   
 }
 
 int main(void)
