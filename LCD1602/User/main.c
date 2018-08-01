@@ -14,6 +14,26 @@ char const Heart[]={0x03,0x07,0x0f,0x1f,0x1f,0x1f,0x1f,0x1f,
                     0x1f,0x1f,0x1f,0x1f,0x1f,0x1c,0x18,0x00, 
                     0x1c,0x18,0x10,0x00,0x00,0x00,0x00,0x00};//心形符
 
+char const ZhenQian[]={0x00,0x00,0x08,0x05,0x00,0x0F,0x02,0x02,
+                       0x00,0x00,0x10,0x07,0x04,0x14,0x05,0x05,
+                       0x00,0x00,0x01,0x11,0x12,0x12,0x06,0x02, 
+                       0x00,0x00,0x02,0x1F,0x02,0x0F,0x02,0x1F,
+                       0x00,0x00,0x00,0x1C,0x00,0x18,0x00,0x1C,
+                       0x1F,0x02,0x05,0x04,0x08,0x10,0x00,0x00,
+                       0x1C,0x04,0x04,0x17,0x14,0x04,0x00,0x00,
+                       0x12,0x12,0x12,0x02,0x02,0x02,0x00,0x00,
+                       0x08,0x0F,0x08,0x0F,0x08,0x08,0x00,0x00,
+                       0x08,0x18,0x08,0x18,0x08,0x18,0x00,0x00};//郑倩
+
+char const ZhenQian_1[]={0x00,0x00,0x08,0x05,0x00,0x0F,0x02,0x02,
+                         0x00,0x00,0x10,0x07,0x05,0x15,0x06,0x05,
+                         0x00,0x00,0x04,0x07,0x08,0x1B,0x08,0x0F, 
+                         0x00,0x00,0x10,0x1C,0x10,0x1C,0x10,0x1E,
+                         0x1F,0x02,0x05,0x04,0x08,0x10,0x00,0x00,
+                         0x1D,0x06,0x04,0x14,0x04,0x04,0x00,0x00,
+                         0x0A,0x0B,0x0A,0x0B,0x0A,0x0A,0x00,0x00,
+                         0x04,0x1C,0x04,0x1C,0x04,0x0C,0x00,0x00};//郑倩
+                       
 __IO uint32_t uwTick;
 
 void delay(__IO uint32_t delay_cnt)//delay_cnt in 1ms
@@ -113,6 +133,8 @@ void LCD1602_WriteData(uint8_t data)
 void LCD1602_init(void)
 {
     /*********************************************************************
+    1602工作电压是5V，
+    控制引脚和数据引脚需要接STM32F030R8的5V兼容引脚(5V tolerant I/O)，才能使1602正常工作。
     PIN1: GND
     PIN2: VCC
     PIN3: V0(偏压信号,调对比度;接VCC对比度最弱,接GND时对比度最高)
@@ -152,8 +174,11 @@ void LCD1602_init(void)
 
 void LCD1602_Display(void)
 {
+    //DDRAM(Display Data RAM)就是显示数据RAM，用来寄存待显示的字符代码，共80个字节。
+    //DDRAM寄存的字符来源有2个：CGROM或CGRAM。
+    //显示字符产生器CGROM(Character Generator ROM)中存储的字符
     uint8_t i;
-#if 0
+
     //第一行显示
     LCD1602_WriteCmd(Set_DDRAM_Address);//设定DDRAM地址，即00H，第一行第一位
     for(i=0;i<strlen(table1);i++)     //将table1[]中的数据依次写入1602显示 
@@ -168,30 +193,60 @@ void LCD1602_Display(void)
         LCD1602_WriteData(table2[i]);           
         delay(2); 
     }    
-#else
+}
+
+void LCD1602_CustomDisplay(const char *disp, uint8_t len)
+{
+    //CGRAM(Character Generator RAM)存放用户自定义的字符
+    //设置CGRAM地址指令中，地址为6位，一共可以表示64个地址，即64个字节。
+    //一个5×8点阵字符共占用8个字节，那么这64个字节一共可以自定义8个字符。
+    //一个5×10点阵字符共占用16个字节，那么这64个字节一共可以自定义4个字符。
+    /*--------------------------------|----------------------------------------
+    D5D4D3   \D2D1D0                  | 000  001  010  011  100  101  110  111
+    (8个字符) \(每个字符的8个字节)    |
+    ----------------------------------|----------------------------------------
+    000                               |
+    ----------------------------------|----------------------------------------
+    001                               |
+    ----------------------------------|----------------------------------------
+    010                               |
+    ----------------------------------|----------------------------------------
+    011                               |
+    ----------------------------------|----------------------------------------
+    100                               |
+    ----------------------------------|----------------------------------------
+    101                               |
+    ----------------------------------|----------------------------------------
+    110                               |
+    ----------------------------------|----------------------------------------
+    111                               |
+    ----------------------------------|---------------------------------------*/
+    uint8_t i;
+
     LCD1602_WriteCmd(Set_CGRAM_Address);//设置CGRAM地址
     for(i=0;i<64;i++)    
     { 
-        LCD1602_WriteData(Heart[i]);           
+        LCD1602_WriteData(disp[i]);           
         delay(2); 
     }    
+    //只有8个字符：0到7
     //第一行显示 
     LCD1602_WriteCmd(Set_DDRAM_Address+5);
-    for(i=0;i<4;i++)
+    for(i=0;i<len/16;i++)
     { 
         LCD1602_WriteData(i);           
         delay(2); 
     }
     //第二行显示
     LCD1602_WriteCmd(Set_DDRAM_Address+0x40+5);
-    for(i=4;i<8;i++)
+    for(i=len/16;i<8;i++)
     { 
         LCD1602_WriteData(i);           
         delay(2); 
-    }
-#endif   
+    } 
 }
 
+uint8_t flag_disp,flag_disp_last;
 int main(void)
 {
 	uint8_t key_press_cnt;
@@ -203,7 +258,7 @@ int main(void)
 	Button_init();	
     LCD1602_init();
     delay(5);
-    LCD1602_Display();
+    //LCD1602_Display();
     
 	while(1)
 	{
@@ -212,11 +267,20 @@ int main(void)
 			if(key_press_cnt>3)
 			{
 				key_press_cnt=0;
+                flag_disp++;
+                if(flag_disp>=3)flag_disp=0;
 			}
 			else key_press_cnt++;
 		}
 		else key_press_cnt=0;	        
-
+        
+        if(flag_disp_last!=flag_disp)LCD1602_WriteCmd(Clear_Screen);//清屏
+        if(flag_disp==2)LCD1602_CustomDisplay(ZhenQian_1, sizeof(ZhenQian_1));
+        else if(flag_disp==1)LCD1602_CustomDisplay(Heart, sizeof(Heart));
+        else LCD1602_Display();
+            
+        flag_disp_last=flag_disp;
+        
         LED2_FLASH;
 		delay(20);
 	}
