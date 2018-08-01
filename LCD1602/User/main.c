@@ -57,6 +57,7 @@ void LCD1602_WriteCmd(uint8_t cmd)//写命令
     E_L;
     RS_L;//命令
     RW_L;//写
+    #if 0
     if(cmd&0x01)D0_H;
     else D0_L;
     if(cmd&0x02)D1_H;
@@ -73,6 +74,10 @@ void LCD1602_WriteCmd(uint8_t cmd)//写命令
     else D6_L;
     if(cmd&0x80)D7_H;
     else D7_L;
+    #else
+    GPIOB->ODR &= 0x00ff;
+    GPIOB->ODR |= cmd<<8;
+    #endif
     delay(2);
     E_H;
     delay(2);
@@ -83,6 +88,7 @@ void LCD1602_WriteData(uint8_t data)
     E_L;
     RS_H;//数据
     RW_L;//写
+    #if 0
     if(data&0x01)D0_H;
     else D0_L;
     if(data&0x02)D1_H;
@@ -99,6 +105,10 @@ void LCD1602_WriteData(uint8_t data)
     else D6_L;
     if(data&0x80)D7_H;
     else D7_L;
+    #else
+    GPIOB->ODR &= 0x00ff;
+    GPIOB->ODR |= data<<8;
+    #endif
     delay(2);
     E_H;
     delay(2);
@@ -110,45 +120,34 @@ void LCD1602_init(void)
     /*********************************************************************
     PIN1: GND
     PIN2: VCC
-    PIN3: V0(偏压信号,调对比度;接VCC对比度最弱,接GND时对比度最高)                  //PB0
-    PIN4: RS(1-数据 0-命令)                       NetCN7_36: PC1
-    PIN5: RW(1-读 0-写)                           NetCN7_38: PC0
+    PIN3: V0(偏压信号,调对比度;接VCC对比度最弱,接GND时对比度最高)
+    PIN4: RS(1-数据 0-命令)                       PB5
+    PIN5: RW(1-读 0-写)                           PB6
     PIN6: E(高电平跳变为低电平时，执行命令)       PB7
     PIN7-PIN14数据端口                            
-    PIN7:   D0                                    PA1
-    PIN8:   D1                                    PC14
-    PIN9:   D2                                    PC15
-    PIN10:  D3                                    PF0
-    PIN11:  D4                                    PF1
-    PIN12:  D5                                    PA4
-    PIN13:  D6                                    PC2
-    PIN14:  D7                                    PC3
+    PIN7:   D0                                    PB8
+    PIN8:   D1                                    PB9
+    PIN9:   D2                                    PB10
+    PIN10:  D3                                    PB11
+    PIN11:  D4                                    PB12
+    PIN12:  D5                                    PB13：NetCN10_30
+    PIN13:  D6                                    PB14：NetCN10_28
+    PIN14:  D7                                    PB15：NetCN10_26
     PIN15: 背光正极
     PIN16: 背光负极
     *********************************************************************/
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	GPIOA->MODER |=GPIO_MODER_MODER4_0 | GPIO_MODER_MODER1_0;  //PA1 PA4输出
-	GPIOA->OTYPER &= ~(GPIO_OTYPER_OT_4 | GPIO_OTYPER_OT_1);   //PA1 PA4推挽输出
-	GPIOA->PUPDR |= GPIO_PUPDR_PUPDR4_0 | GPIO_PUPDR_PUPDR1_0; //PA1 PA4上拉       
-    
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;  //打开Port B时钟
-	GPIOB->MODER |=GPIO_MODER_MODER7_0;  //PB7输出
-	GPIOB->OTYPER &= ~(GPIO_OTYPER_OT_7);   //PB7推挽输出
-	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR7_0; //PB7上拉  
+	GPIOB->MODER |= GPIO_MODER_MODER15_0 | GPIO_MODER_MODER14_0 | GPIO_MODER_MODER13_0
+                  | GPIO_MODER_MODER12_0 | GPIO_MODER_MODER11_0 | GPIO_MODER_MODER10_0
+                  | GPIO_MODER_MODER9_0 | GPIO_MODER_MODER8_0 | GPIO_MODER_MODER7_0
+                  | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER5_0;  //PB5~PB15输出
+	GPIOB->OTYPER &= 0xffffffe0;   //PB5~PB15推挽输出
+	GPIOB->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 | GPIO_PUPDR_PUPDR13_0
+                  | GPIO_PUPDR_PUPDR12_0 | GPIO_PUPDR_PUPDR11_0 | GPIO_PUPDR_PUPDR10_0
+                  | GPIO_PUPDR_PUPDR9_0 | GPIO_PUPDR_PUPDR8_0 | GPIO_PUPDR_PUPDR7_0
+                  | GPIO_PUPDR_PUPDR6_0 | GPIO_PUPDR_PUPDR5_0; //PB5~PB15上拉  
     
-    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;  //打开Port C时钟
-	GPIOC->MODER |= GPIO_MODER_MODER15_0 | GPIO_MODER_MODER14_0 | GPIO_MODER_MODER3_0 
-                  | GPIO_MODER_MODER2_0 | GPIO_MODER_MODER1_0 | GPIO_MODER_MODER0_0;  //PC0 PC1 PC2 PC3 PC14 PC15输出
-	GPIOC->OTYPER &= ~(GPIO_OTYPER_OT_15 | GPIO_OTYPER_OT_14 | GPIO_OTYPER_OT_3 
-                       | GPIO_OTYPER_OT_2 | GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);   //PC0 PC1 PC2 PC3 PC14 PC15推挽输出
-	GPIOC->PUPDR |= GPIO_PUPDR_PUPDR15_0 | GPIO_PUPDR_PUPDR14_0 | GPIO_PUPDR_PUPDR3_0 
-                  | GPIO_PUPDR_PUPDR2_0 | GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0; //PC0 PC1 PC2 PC3 PC14 PC15上拉      
-
-    RCC->AHBENR |= RCC_AHBENR_GPIOFEN;  //打开Port F时钟
-	GPIOF->MODER |=GPIO_MODER_MODER1_0 | GPIO_MODER_MODER0_0;  //PF0 PF1输出
-	GPIOF->OTYPER &= ~(GPIO_OTYPER_OT_1 | GPIO_OTYPER_OT_0);   //PF0 PF1推挽输出
-	GPIOF->PUPDR |= GPIO_PUPDR_PUPDR1_0 | GPIO_PUPDR_PUPDR0_0; //PF0 PF1上拉      
-       
+    
     LCD1602_WriteCmd(Function_Set+Data_Interface_8+Double_Line_Display);//设置工作方式，8位数据接口，两行显示，5*8点阵字符
     LCD1602_WriteCmd(Display_OnOff);//关显示
     LCD1602_WriteCmd(Clear_Screen);//清屏
