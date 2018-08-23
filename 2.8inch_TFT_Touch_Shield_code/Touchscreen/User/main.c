@@ -56,13 +56,13 @@ void spi1_init(void)
     /******************************************
     空闲状态SCK高电平，第二个SCK边沿采样数据；
     主模式；
-    Baud Rate：fpclk/4，fpclk=fhclk=fsysclk=8MHz；
+    Baud Rate：fpclk/16，fpclk=fhclk=fsysclk=8MHz；
     MSB在前；
     NSS软件管理：
     2线全双工；
     不使用CRC；
     ******************************************/
-    SPI1->CR1 = SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_0 | SPI_CR1_SSM | SPI_CR1_SSI;
+    SPI1->CR1 = SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_1 | SPI_CR1_BR_0 | SPI_CR1_SSM | SPI_CR1_SSI;
     /******************************************
     不使用TX和RX DMA；
     NSS输出不使能；
@@ -72,9 +72,9 @@ void spi1_init(void)
     RXNE中断不使能；
     TXE中断不使能；
     数据长度：8bit；
-    接收阈值：16bit；
+    接收阈值：8bit；(触摸屏，读取xpt2046，必须按8位读取；而TFT屏，不需要读取它的返回值，所以不用考虑此位)
     ******************************************/   
-    SPI1->CR2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+    SPI1->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
 
     SPI1->CR1 |= SPI_CR1_SPE;
 }
@@ -96,8 +96,7 @@ int main(void)
     
 	while(1)
 	{
-        //lcd_draw_point(120, 160, RED);
-        //delay_ms(1000);        
+        tp_draw_board();
 	}
 }
 

@@ -60,9 +60,9 @@ void spi1_init(void)
     RXNE中断不使能；
     TXE中断不使能；
     数据长度：8bit；
-    接收阈值：16bit；
+    接收阈值：8bit；
     ******************************************/   
-    SPI1->CR2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+    SPI1->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
 
     SPI1->CR1 |= SPI_CR1_SPE;
 }

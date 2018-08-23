@@ -21,7 +21,7 @@ uint16_t xpt2046_read_ad_value(uint8_t chCmd)
     hwData |= spi_read_write_byte(0x00);
     hwData >>= 4;
     TP_CS_SET;
-    
+
     return hwData;
 }
 
