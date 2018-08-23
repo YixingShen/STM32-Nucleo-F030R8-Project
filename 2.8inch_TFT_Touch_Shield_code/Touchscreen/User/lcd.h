@@ -1,8 +1,7 @@
 #ifndef _LCD_H_
 #define _LCD_H_
 
-//#include "main.h"
-#include "delay.h"
+#include "stm32f0xx.h"
 
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))

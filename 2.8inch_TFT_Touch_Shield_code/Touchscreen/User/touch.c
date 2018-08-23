@@ -7,7 +7,7 @@
 #define false 0
 #include <stdlib.h>
 #include <math.h>
-
+#include "delay.h"
 
 uint16_t xpt2046_read_ad_value(uint8_t chCmd)
 {

@@ -2,6 +2,7 @@
 #include "spi1.h"
 #include "Fonts.h"
 #include <stdlib.h>
+#include "delay.h"
 
 static void lcd_write_byte(uint8_t chByte, uint8_t chCmd)
 {
