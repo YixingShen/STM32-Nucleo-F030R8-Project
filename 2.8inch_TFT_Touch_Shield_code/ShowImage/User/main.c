@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 void port_init(void)
 {
     //打开Port A B C时钟
@@ -201,7 +200,7 @@ int main(void)
     
 	while(1)
 	{
-        //tp_draw_board();
+        tp_draw_board();
         Display_Images();
 	}
 }
