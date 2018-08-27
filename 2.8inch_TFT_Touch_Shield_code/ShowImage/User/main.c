@@ -55,6 +55,7 @@ void port_init(void)
     GPIOB->OTYPER &= ~GPIO_OTYPER_OT_4;
     GPIOB->PUPDR |= GPIO_PUPDR_PUPDR4_0;
     GPIOB->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR4;
+    TP_CS_SET;//与SD卡通信，TP_CS需要置高
 }
     
 void spi1_init(void)
@@ -191,10 +192,11 @@ int main(void)
     spi1_init();
     
     lcd_init();
-    //xpt2046_init();
+    xpt2046_init();
 
-    //tp_adjust();
-    //tp_dialog();
+    tp_adjust();
+    tp_dialog();
+    TP_CS_SET;
     SDCard_Config();
     
 	while(1)
