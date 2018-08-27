@@ -39,7 +39,9 @@
 #define BRRED 		   0XFC07 
 #define GRAY  		   0X8430 
 
-
+extern void lcd_write_byte(uint8_t chByte, uint8_t chCmd);
+extern void lcd_write_word(uint16_t hwData);
+extern void lcd_write_register(uint8_t chRegister, uint8_t chValue);
 extern void lcd_init(void);
 extern void lcd_clear_screen(uint16_t hwColor);
 extern void lcd_set_cursor(uint16_t hwXpos, uint16_t hwYpos);

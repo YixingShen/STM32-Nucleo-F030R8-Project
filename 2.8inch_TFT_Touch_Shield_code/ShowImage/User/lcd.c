@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "delay.h"
 
-static void lcd_write_byte(uint8_t chByte, uint8_t chCmd)
+void lcd_write_byte(uint8_t chByte, uint8_t chCmd)
 {
     if (chCmd) {
         LCD_DC_SET;
@@ -17,7 +17,7 @@ static void lcd_write_byte(uint8_t chByte, uint8_t chCmd)
     LCD_CS_SET;
 }
 
-static void lcd_write_word(uint16_t hwData)
+void lcd_write_word(uint16_t hwData)
 {
     LCD_DC_SET;
     LCD_CS_CLR;
@@ -26,7 +26,7 @@ static void lcd_write_word(uint16_t hwData)
     LCD_CS_SET;
 }
 
-static void lcd_write_register(uint8_t chRegister, uint8_t chValue)
+void lcd_write_register(uint8_t chRegister, uint8_t chValue)
 {
 	lcd_write_byte(chRegister, LCD_CMD);
 	lcd_write_byte(chValue, LCD_DATA);

@@ -337,7 +337,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Include</IncludePath>
+              <IncludePath>.\Include;.\User;.\FATFS</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -411,6 +411,16 @@
               <FileType>1</FileType>
               <FilePath>.\User\touch.c</FilePath>
             </File>
+            <File>
+              <FileName>MMC_SD.C</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\MMC_SD.C</FilePath>
+            </File>
+            <File>
+              <FileName>fatfs_storage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\fatfs_storage.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -470,6 +480,21 @@
               <FileName>system_stm32f0xx.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Include\system_stm32f0xx.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FATFS</GroupName>
+          <Files>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FATFS\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FATFS\ff.c</FilePath>
             </File>
           </Files>
         </Group>

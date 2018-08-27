@@ -2,6 +2,11 @@
 #include "delay.h"
 #include "main.h"
 #include "touch.h"
+#include "ff.h"		
+#include "fatfs_storage.h"
+#include <stdlib.h>
+#include <stdio.h>
+
 
 void port_init(void)
 {
@@ -43,6 +48,13 @@ void port_init(void)
     GPIOB->OTYPER &= ~GPIO_OTYPER_OT_3;
     GPIOB->PUPDR |= GPIO_PUPDR_PUPDR3_0;
     GPIOB->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR3;
+    
+    //SD_CS: PB4
+    //PB4: 输出，推挽，上拉，高速
+    GPIOB->MODER |= GPIO_MODER_MODER4_0;
+    GPIOB->OTYPER &= ~GPIO_OTYPER_OT_4;
+    GPIOB->PUPDR |= GPIO_PUPDR_PUPDR4_0;
+    GPIOB->OSPEEDR |= GPIO_OSPEEDER_OSPEEDR4;
 }
     
 void spi1_init(void)
@@ -79,6 +91,96 @@ void spi1_init(void)
     SPI1->CR1 |= SPI_CR1_SPE;
 }
 
+
+char* pDirectoryFiles[MAX_BMP_FILES];
+FATFS microSDFatFs;
+uint8_t str[20];
+
+void SDCard_Config(void)
+{
+  uint32_t counter = 0;
+  
+  /* Check the mounted device */
+  if(f_mount(&microSDFatFs, (TCHAR const*)"/", 0) != FR_OK)
+  {
+      lcd_display_string(0, 16, "FATFS_NOT_MOUNTED", 16, RED);
+  }  
+  else
+  {
+    /* Initialize the Directory Files pointers (heap) */
+    for (counter = 0; counter < MAX_BMP_FILES; counter++)
+    {
+      pDirectoryFiles[counter] = malloc(11); 
+    }
+  }
+}
+
+static void Display_Images(void)
+{    
+    uint32_t bmplen = 0x00;
+    uint32_t checkstatus = 0x00;
+    uint32_t filesnumbers = 0x00;
+    uint32_t bmpcounter = 0x00;
+    DIR directory;
+    FRESULT res;
+   
+    /* Open directory */
+    res= f_opendir(&directory, "/");
+    if((res != FR_OK))
+    {
+      if(res == FR_NO_FILESYSTEM)
+      {
+        /* Display message: SD card not FAT formated */
+        lcd_display_string(0, 32, "SD_CARD_NOT_FORMATTED", 16, RED);  
+          
+      }
+      else
+      {
+        /* Display message: Fail to open directory */
+         lcd_display_string(0, 48, "SD_CARD_OPEN_FAIL", 16, RED);           
+      }
+    }
+    
+    /* Get number of bitmap files */
+    filesnumbers = Storage_GetDirectoryBitmapFiles ("/", pDirectoryFiles);    
+    /* Set bitmap counter to display first image */
+    bmpcounter = 1; 
+    
+    while (1)
+    {     
+        sprintf((char*)str, "%-11.11s", pDirectoryFiles[bmpcounter -1]);
+        
+        checkstatus = Storage_CheckBitmapFile((const char*)str, &bmplen);
+        
+        if(checkstatus == 0)
+        {
+          /* Format the string */
+          Storage_OpenReadFile(0, 0, (const char*)str); 
+        }
+        else if (checkstatus == 1)
+        {
+          /* Display message: SD card does not exist */
+           lcd_display_string(0, 64, "SD_CARD_NOT_FOUND", 16, RED);  
+        }
+        else
+        {
+          /* Display message: File not supported */
+            lcd_display_string(0, 80, "SD_CARD_FILE_NOT_SUPPORTED", 16, RED); 
+        }
+        
+        bmpcounter ++;
+        if(bmpcounter > filesnumbers)
+        {
+          bmpcounter = 1;
+        }
+        
+        delay_ms(1000);
+        delay_ms(1000);
+        delay_ms(1000);
+    }
+}
+
+
 int main(void)
 {
     SystemInit();
@@ -89,14 +191,16 @@ int main(void)
     spi1_init();
     
     lcd_init();
-    xpt2046_init();
+    //xpt2046_init();
 
-    tp_adjust();
-    tp_dialog();
+    //tp_adjust();
+    //tp_dialog();
+    SDCard_Config();
     
 	while(1)
 	{
-        tp_draw_board();
+        //tp_draw_board();
+        Display_Images();
 	}
 }
 
