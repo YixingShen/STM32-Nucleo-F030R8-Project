@@ -42,10 +42,10 @@ void led_Serve(void* pvParam)
 	while(1)
 	{
         /*
-		SET_LED2;
-		vTaskDelay(500);
-        CLR_LED2;
-        vTaskDelay(1500);
+            SET_LED2;
+            vTaskDelay(500);
+            CLR_LED2;
+            vTaskDelay(1500);
         */
         if(light==1) SET_LED2;
         else CLR_LED2;
@@ -90,15 +90,19 @@ void flash_Serve(void* pvParam)
 
 int main(void)
 {
+    TaskHandle_t ledHandle = NULL;
+    TaskHandle_t buttonHandle = NULL;
+    TaskHandle_t flashHandle = NULL;
+    
     if(SystemCoreClock==48000000)PLL_Config();//SystemCoreClock设置要于此对应
     led_init();
     button_init();
 	light=read_flash_HalfWord(0);
     
     //创建任务
-	xTaskCreate(led_Serve, (char const*)"led", 100, NULL, 1, NULL);	
-	xTaskCreate(button_Serve, (char const*)"button", 100, NULL, 2, NULL);
-    xTaskCreate(flash_Serve, (char const*)"flash", 100, NULL, 1, NULL);
+	xTaskCreate(led_Serve, (char const*)"led", 10, NULL, 1, &ledHandle);//NULL);	
+	xTaskCreate(button_Serve, (char const*)"button", 10, NULL, 2, &buttonHandle);//NULL);
+    xTaskCreate(flash_Serve, (char const*)"flash", 20, NULL, 1, &flashHandle);//NULL);
 
 	//启动调度器
 	vTaskStartScheduler();
