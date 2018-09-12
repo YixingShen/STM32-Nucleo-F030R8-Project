@@ -47,6 +47,8 @@
 	extern uint32_t SystemCoreClock;
 #endif
 
+#define configSUPPORT_STATIC_ALLOCATION 1//使用静态内存分配，默认是动态内存分配
+
 #define configUSE_PREEMPTION			1
 #define configUSE_IDLE_HOOK				0
 #define configUSE_TICK_HOOK				0
@@ -73,7 +75,7 @@
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Software timer definitions. */
-#define configUSE_TIMERS				0//1//0 or 1 all right
+#define configUSE_TIMERS				0//1 //0 or 1 all right
 #define configTIMER_TASK_PRIORITY		( 2 )
 #define configTIMER_QUEUE_LENGTH		5
 #define configTIMER_TASK_STACK_DEPTH	( 80 )
