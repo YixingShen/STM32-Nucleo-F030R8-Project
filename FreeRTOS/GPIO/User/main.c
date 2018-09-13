@@ -2,146 +2,120 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-extern FLASH_Status write_flash_HalfWord(uint32_t flash_addr, uint16_t data);
-extern uint16_t read_flash_HalfWord(uint32_t flash_addr);
-
 extern uint32_t SystemCoreClock;
 
-uint16_t light,key_press_cnt,flag_key_press;
+extern FLASH_Status write_flash_HalfWord(uint32_t flash_addr, uint16_t data);
+extern uint16_t read_flash_HalfWord(uint32_t flash_addr);
+extern void PLL_Config(void);
+extern void led_init(void);
+extern void button_init(void);
 
-void PLL_Config(void)//configuration PLL as system clock =48MHz
-{
-	RCC->CFGR |= RCC_CFGR_PLLMUL12;
-	RCC->CR |= RCC_CR_PLLON;
-	while((RCC->CR&RCC_CR_PLLRDY)==0);
-	RCC->CFGR |= RCC_CFGR_SW_PLL;
-	while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);	
-}
+uint16_t light;
 
-void led_init(void)
-{
-	//LED2-PA5
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
-	GPIOA->MODER &= (~GPIO_MODER_MODER5);
-	GPIOA->MODER |=GPIO_MODER_MODER5_0; //PA5输出
-	GPIOA->OTYPER &= (~GPIO_OTYPER_OT_5); //PA5推挽输出
-	//GPIOA->PUPDR &= (~GPIO_PUPDR_PUPDR5);
-	//GPIOA->PUPDR |= GPIO_PUPDR_PUPDR5_0; //PA5 PULL-UP    
-}
-
-void button_init(void)
-{
-	//USER_BUTTON-PC13
-	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; //打开PORT C时钟
-	GPIOC->MODER &= (~GPIO_MODER_MODER13); //PC13设为输入    
-}
+TaskHandle_t LedBlinkHandle;
+extern void led_blink(void* pvParam);
+extern void led_Serve(void* pvParam);
+extern void button_Serve(void* pvParam);
+extern void flash_Serve(void* pvParam);
 
 
-void led_Serve(void* pvParam)
-{	
-	while(1)
-	{
-        /*
-            SET_LED2;
-            vTaskDelay(500);
-            CLR_LED2;
-            vTaskDelay(1500);
-        */
-        if(light==1) SET_LED2;
-        else CLR_LED2;
-	}    
-}
-
-void button_Serve(void* pvParam)
-{	
-    while(1)
-    {
-        if(KEY_PRESS)//按键按下
-        {
-            if(flag_key_press==0)
-            {
-                if(key_press_cnt>3)
-                {
-                    key_press_cnt=0;
-                    flag_key_press=1;
-                    if(light==0)light=1;
-                    else light=0;
-                    //write_flash_HalfWord(0,light);
-                }
-                else key_press_cnt++;
-            }
-        }			
-        else 
-        {
-            key_press_cnt=0;
-            flag_key_press=0;
-        }
-        vTaskDelay(20);
-    }
-}
-
-void flash_Serve(void* pvParam)
-{
-	while(1)
-	{
-        if(flag_key_press==1)write_flash_HalfWord(0,light);
-	}
-}
+#define LED_BLINK_STACK_SIZE  20
+#define LED_STACK_SIZE  10
+#define BUTTON_STACK_SIZE  15
+#define FLASH_STACK_SIZE  20
 
 #if (configSUPPORT_STATIC_ALLOCATION ==1 )
-TaskHandle_t LedTaskHandle;
-TaskHandle_t ButtonTaskHandle;
-TaskHandle_t FlashTaskHandle;
-
-#define LED_STACK_SIZE  10
 StaticTask_t LedTaskTCB;
 StackType_t LedTaskStack[LED_STACK_SIZE];
 
-#define BUTTON_STACK_SIZE  15
 StaticTask_t ButtonTaskTCB;
 StackType_t ButtonTaskStack[BUTTON_STACK_SIZE];
 
-#define FLASH_STACK_SIZE  20
 StaticTask_t FlashTaskTCB;
 StackType_t FlashTaskStack[FLASH_STACK_SIZE];
+
+StaticTask_t LedBlinkTCB;
+StackType_t LedBlinkStack[LED_BLINK_STACK_SIZE];
 #endif
+
 int main(void)
 {
-    TaskHandle_t ledHandle = NULL;
-    TaskHandle_t buttonHandle = NULL;
-    TaskHandle_t flashHandle = NULL;
+    uint8_t flag_blink;
+    uint16_t flag_key_press;
+    TaskHandle_t LedTaskHandle = NULL;
+    TaskHandle_t ButtonTaskHandle = NULL;
+    TaskHandle_t FlashTaskHandle = NULL;
     
     if(SystemCoreClock==48000000)PLL_Config();//SystemCoreClock设置要于此对应
     led_init();
     button_init();
 	light=read_flash_HalfWord(0);
+
     
     //创建任务
+    /*每个任务都有一段时间来执行，这段时间执行这个任务，下段时间执行另一个任务，
+    并不是完全执行完某个任务后才去执行另一个任务，每个任务都有一个时间片来执行；
+    优先级的作用并不是完全执行完某个任务后，再执行低优先级的任务，
+    而是在低优先级任务执行的时间片内，高优先级任务可以打断它，该时间片的剩余时间来执行高优先级任务，
+    时间片结束后，又转去执行下一个任务。*/
 #if (configSUPPORT_STATIC_ALLOCATION ==1 )
+    //上电后，LED先闪5次；再根据FLASH读取的值或按键操作，常亮或常灭
+    LedBlinkHandle = xTaskCreateStatic( led_blink, 
+                                        (char const*)"led blink", 
+                                        LED_BLINK_STACK_SIZE, 
+                                        &flag_blink,//NULL, 
+                                        1, 
+                                        LedBlinkStack, 
+                                        &LedBlinkTCB);   
+
     LedTaskHandle = xTaskCreateStatic( led_Serve, 
                                        (char const*)"led", 
                                        LED_STACK_SIZE, 
-                                       NULL, 
+                                       &flag_blink,//NULL, 
                                        1, 
                                        LedTaskStack, 
                                        &LedTaskTCB);
     ButtonTaskHandle = xTaskCreateStatic( button_Serve, 
                                           (char const*)"button", 
-                                          BUTTON_STACK_SIZE, NULL, 
+                                          BUTTON_STACK_SIZE, 
+                                          &flag_key_press,//NULL, 
                                           2, 
                                           ButtonTaskStack, 
                                           &ButtonTaskTCB);
     FlashTaskHandle = xTaskCreateStatic( flash_Serve, 
                                          (char const*)"flash", 
                                          FLASH_STACK_SIZE, 
-                                         NULL, 
+                                         &flag_key_press,//NULL, 
                                          1, 
                                          FlashTaskStack, 
                                          &FlashTaskTCB);
 #else    
-	xTaskCreate(led_Serve, (char const*)"led", 10, NULL, 1, &ledHandle);//NULL);	
-	xTaskCreate(button_Serve, (char const*)"button", 10, NULL, 2, &buttonHandle);//NULL);
-    xTaskCreate(flash_Serve, (char const*)"flash", 20, NULL, 1, &flashHandle);//NULL);
+    //上电后，LED先闪5次；再根据FLASH读取的值或按键操作，常亮或常灭
+    xTaskCreate( led_blink, 
+                 (char const*)"led blink", 
+                 LED_BLINK_STACK_SIZE, 
+                 &flag_blink, 
+                 1, 
+                 &LedBlinkHandle);
+    //xTaskCreate(led_Serve, (char const*)"led", 10, NULL, 1, NULL);	    
+    xTaskCreate( led_Serve, 
+                 (char const*)"led", 
+                 LED_STACK_SIZE, 
+                 &flag_blink, 
+                 1, 
+                 &LedTaskHandle);        
+	xTaskCreate( button_Serve, 
+                 (char const*)"button", 
+                 BUTTON_STACK_SIZE, 
+                 &flag_key_press,//NULL, 
+                 2, 
+                 &ButtonTaskHandle);//NULL);
+    xTaskCreate( flash_Serve, 
+                 (char const*)"flash", 
+                 FLASH_STACK_SIZE, 
+                 &flag_key_press,//NULL, 
+                 1, 
+                 &FlashTaskHandle);//NULL);
 #endif
 	//启动调度器
 	vTaskStartScheduler();
@@ -180,3 +154,82 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
 }
 #endif
 #endif
+
+
+void led_blink(void* pvParam)
+{	
+    uint8_t cnt=0;
+    uint8_t* p;
+    p=pvParam;
+    *p=1;
+	while(1)
+	{
+        cnt++;
+        SET_LED2;
+        vTaskDelay(250);
+        CLR_LED2;
+        vTaskDelay(750);
+        if(cnt>=5)
+        {
+            *p=0;
+            vTaskDelete(LedBlinkHandle);
+        }
+	}    
+}
+
+void led_Serve(void* pvParam)
+{	     
+    uint8_t* p;
+    p=pvParam;    
+	while(1)
+	{
+        if(*p==0)
+        {
+            if(light==1) SET_LED2;
+            else CLR_LED2;
+        }
+	}  
+}
+
+void button_Serve(void* pvParam)
+{	
+    uint16_t key_press_cnt;
+    uint16_t* p;
+    p=pvParam;
+    
+    while(1)
+    {
+        if(KEY_PRESS)//按键按下
+        {
+            if(*p==0)
+            {
+                if(key_press_cnt>3)
+                {
+                    key_press_cnt=0;
+                    *p=1;
+                    if(light==0)light=1;
+                    else light=0;
+                }
+                else key_press_cnt++;
+            }
+        }			
+        else 
+        {
+            key_press_cnt=0;
+            *p=0;
+        }
+        vTaskDelay(20);
+    }
+}
+
+void flash_Serve(void* pvParam)
+{
+    uint16_t* p;
+    p=pvParam;
+    
+	while(1)
+	{
+        if(*p==1) write_flash_HalfWord(0,light);
+	}
+}
+

@@ -391,6 +391,11 @@
               <FileType>1</FileType>
               <FilePath>.\User\flash_as_eeprom.c</FilePath>
             </File>
+            <File>
+              <FileName>init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\init.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
