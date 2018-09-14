@@ -47,7 +47,7 @@
 	extern uint32_t SystemCoreClock;
 #endif
 
-#define configSUPPORT_STATIC_ALLOCATION 1//使用静态内存分配，默认是动态内存分配
+#define configSUPPORT_STATIC_ALLOCATION 0//使用静态内存分配，默认是动态内存分配
 
 #define configUSE_PREEMPTION			1
 #define configUSE_IDLE_HOOK				0
