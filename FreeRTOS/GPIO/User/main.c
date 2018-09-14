@@ -10,7 +10,6 @@ extern void PLL_Config(void);
 extern void led_init(void);
 extern void button_init(void);
 
-//uint16_t light;
 typedef struct LED_Button_Information 
 {
     uint8_t flag_blink;
@@ -46,8 +45,6 @@ StackType_t LedBlinkStack[LED_BLINK_STACK_SIZE];
 
 int main(void)
 {
-    //uint8_t flag_blink;
-    //uint16_t flag_key_press;
     LED_Button_Info run_info;
     TaskHandle_t LedTaskHandle = NULL;
     TaskHandle_t ButtonTaskHandle = NULL;
@@ -71,7 +68,7 @@ int main(void)
     LedBlinkHandle = xTaskCreateStatic( led_blink, 
                                         (char const*)"led blink", 
                                         LED_BLINK_STACK_SIZE, 
-                                        &run_info,//&flag_blink,//NULL, 
+                                        &run_info,//NULL, 
                                         1, 
                                         LedBlinkStack, 
                                         &LedBlinkTCB);   
@@ -79,21 +76,21 @@ int main(void)
     LedTaskHandle = xTaskCreateStatic( led_Serve, 
                                        (char const*)"led", 
                                        LED_STACK_SIZE, 
-                                       &run_info,//&flag_blink,//NULL, 
+                                       &run_info,//NULL, 
                                        1, 
                                        LedTaskStack, 
                                        &LedTaskTCB);
     ButtonTaskHandle = xTaskCreateStatic( button_Serve, 
                                           (char const*)"button", 
                                           BUTTON_STACK_SIZE, 
-                                          &run_info,//&flag_key_press,//NULL, 
+                                          &run_info,//NULL, 
                                           2, 
                                           ButtonTaskStack, 
                                           &ButtonTaskTCB);
     FlashTaskHandle = xTaskCreateStatic( flash_Serve, 
                                          (char const*)"flash", 
                                          FLASH_STACK_SIZE, 
-                                         &run_info,//&flag_key_press,//NULL, 
+                                         &run_info,//NULL, 
                                          1, 
                                          FlashTaskStack, 
                                          &FlashTaskTCB);
@@ -102,28 +99,28 @@ int main(void)
     xTaskCreate( led_blink, 
                  (char const*)"led blink", 
                  LED_BLINK_STACK_SIZE, 
-                 &run_info,//&flag_blink, 
+                 &run_info,
                  1, 
                  &LedBlinkHandle);
     //xTaskCreate(led_Serve, (char const*)"led", 10, NULL, 1, NULL);	    
     xTaskCreate( led_Serve, 
                  (char const*)"led", 
                  LED_STACK_SIZE, 
-                 &run_info,//&flag_blink, 
+                 &run_info,
                  1, 
                  &LedTaskHandle);        
 	xTaskCreate( button_Serve, 
                  (char const*)"button", 
                  BUTTON_STACK_SIZE, 
-                 &run_info,//&flag_key_press,//NULL, 
+                 &run_info,
                  2, 
-                 &ButtonTaskHandle);//NULL);
+                 &ButtonTaskHandle);
     xTaskCreate( flash_Serve, 
                  (char const*)"flash", 
                  FLASH_STACK_SIZE, 
-                 &run_info,//&flag_key_press,//NULL, 
+                 &run_info,
                  1, 
-                 &FlashTaskHandle);//NULL);
+                 &FlashTaskHandle);
 #endif
 	//启动调度器
 	vTaskStartScheduler();
@@ -167,12 +164,10 @@ void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
 void led_blink(void* pvParam)
 {	
     uint8_t cnt=0;
-    //uint8_t* p;
-    //p=pvParam;
-    //*p=1;
     LED_Button_Info * param;
     param=pvParam;
     param->flag_blink=1;//(*param).flag_blink=1;
+    
 	while(1)
 	{
         cnt++;
@@ -182,7 +177,6 @@ void led_blink(void* pvParam)
         vTaskDelay(750);
         if(cnt>=5)
         {
-            //*p=0;
             param->flag_blink=0;//(*param).flag_blink=1;
             vTaskDelete(LedBlinkHandle);
         }
@@ -190,16 +184,15 @@ void led_blink(void* pvParam)
 }
 
 void led_Serve(void* pvParam)
-{	     
-    //uint8_t* p;
-    //p=pvParam;    
+{	       
     LED_Button_Info * param;
     param=pvParam;
+    
 	while(1)
 	{
-        if(param->flag_blink==0)//(*p==0)
+        if(param->flag_blink==0)
         {
-            if(param->light==1)//(light==1) 
+            if(param->light==1)
                 SET_LED2;
             else CLR_LED2;
         }
@@ -209,22 +202,19 @@ void led_Serve(void* pvParam)
 void button_Serve(void* pvParam)
 {	
     uint16_t key_press_cnt;
-    //uint16_t* p;
-    //p=pvParam;
     LED_Button_Info * param;
     param=pvParam;    
+    
     while(1)
     {
         if(KEY_PRESS)//按键按下
         {
-            if(param->flag_key_press==0)//(*p==0)
+            if(param->flag_key_press==0)
             {
                 if(key_press_cnt>3)
                 {
                     key_press_cnt=0;
-                    param->flag_key_press=1;//*p=1;
-                    //if(light==0)light=1;
-                    //else light=0;
+                    param->flag_key_press=1;
                     if(param->light==0)param->light=1;
                     else param->light=0;
                 }
@@ -234,7 +224,6 @@ void button_Serve(void* pvParam)
         else 
         {
             key_press_cnt=0;
-            //*p=0;
             param->flag_key_press=0;
         }
         vTaskDelay(20);
@@ -243,14 +232,11 @@ void button_Serve(void* pvParam)
 
 void flash_Serve(void* pvParam)
 {
-    //uint16_t* p;
-    //p=pvParam;
     LED_Button_Info * param;
     param=pvParam;   
     
 	while(1)
 	{
-        //if(*p==1) write_flash_HalfWord(0,light);
         if(param->flag_key_press==1) write_flash_HalfWord(0,param->light);
 	}
 }
