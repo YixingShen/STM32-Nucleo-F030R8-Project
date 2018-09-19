@@ -24,8 +24,8 @@ extern void button_Serve(void* pvParam);
 extern void flash_Serve(void* pvParam);
 
 
-#define LED_BLINK_STACK_SIZE  20
-#define LED_STACK_SIZE  10
+#define LED_BLINK_STACK_SIZE  25
+#define LED_STACK_SIZE  15
 #define BUTTON_STACK_SIZE  15
 #define FLASH_STACK_SIZE  20
 
@@ -43,12 +43,13 @@ StaticTask_t LedBlinkTCB;
 StackType_t LedBlinkStack[LED_BLINK_STACK_SIZE];
 #endif
 
+TaskHandle_t LedTaskHandle = NULL;
+TaskHandle_t ButtonTaskHandle = NULL;
+TaskHandle_t FlashTaskHandle = NULL;
+
 int main(void)
 {
     LED_Button_Info run_info;
-    TaskHandle_t LedTaskHandle = NULL;
-    TaskHandle_t ButtonTaskHandle = NULL;
-    TaskHandle_t FlashTaskHandle = NULL;
     
     if(SystemCoreClock==48000000)PLL_Config();//SystemCoreClock设置要于此对应
     led_init();
@@ -94,6 +95,9 @@ int main(void)
                                          1, 
                                          FlashTaskStack, 
                                          &FlashTaskTCB);
+    vTaskSuspend(LedTaskHandle); 
+    vTaskSuspend(ButtonTaskHandle);                                         
+    vTaskSuspend(FlashTaskHandle);
 #else    
     //上电后，LED先闪5次；再根据FLASH读取的值或按键操作，常亮或常灭
     xTaskCreate( led_blink, 
@@ -121,6 +125,9 @@ int main(void)
                  &run_info,
                  1, 
                  &FlashTaskHandle);
+    vTaskSuspend(LedTaskHandle);      
+    vTaskSuspend(ButtonTaskHandle); 
+    vTaskSuspend(FlashTaskHandle);
 #endif
 	//启动调度器
 	vTaskStartScheduler();
@@ -178,6 +185,8 @@ void led_blink(void* pvParam)
         if(cnt>=5)
         {
             param->flag_blink=0;//(*param).flag_blink=1;
+            vTaskResume(LedTaskHandle);//必须在删除LedBlinkHandle之前恢复LedTaskHandle；因为删除LedBlinkHandle语句之后的语句不会执行
+            vTaskResume(ButtonTaskHandle); 
             vTaskDelete(LedBlinkHandle);
         }
 	}    
@@ -196,6 +205,7 @@ void led_Serve(void* pvParam)
                 SET_LED2;
             else CLR_LED2;
         }
+        vTaskSuspend(LedTaskHandle);
 	}  
 }
 
@@ -217,6 +227,8 @@ void button_Serve(void* pvParam)
                     param->flag_key_press=1;
                     if(param->light==0)param->light=1;
                     else param->light=0;
+                    vTaskResume(FlashTaskHandle);
+                    vTaskResume(LedTaskHandle);
                 }
                 else key_press_cnt++;
             }
@@ -238,6 +250,7 @@ void flash_Serve(void* pvParam)
 	while(1)
 	{
         if(param->flag_key_press==1) write_flash_HalfWord(0,param->light);
+        vTaskSuspend(FlashTaskHandle);
 	}
 }
 
