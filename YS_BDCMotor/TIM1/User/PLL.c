@@ -4,7 +4,7 @@ void PLL_Config(void)//configuration PLL as system clock
 {
 	RCC->CFGR |= RCC_CFGR_PLLMUL12;
 	RCC->CR |= RCC_CR_PLLON;
-	while(RCC->CR&RCC_CR_PLLRDY==0);
+	while((RCC->CR & RCC_CR_PLLRDY)==0);
 	RCC->CFGR |= RCC_CFGR_SW_PLL;
 	while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);	
 #if 0
