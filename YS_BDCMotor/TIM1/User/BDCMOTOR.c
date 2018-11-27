@@ -1,5 +1,8 @@
 #include "BDCMOTOR.h"
 
+uint8_t BDCMOTOR_state,BDCMOTOR_Dir;
+__IO int16_t PWM_Duty=BDCMOTOR_DUTY_ZERO; // 占空比：PWM_Duty/BDCMOTOR_TIM_PERIOD*100%
+
 void BDCMOTOR_GPIO_Init(void)
 {
     /*****************************************
@@ -53,48 +56,100 @@ void BDCMOTOR_TIMx_Init(void)
     /* 刹车和死区时间配置 */
     /* Set the Lock level, the Break enable Bit and the Polarity, the OSSR State,
     the OSSI State, the dead time value and the Automatic Output Enable Bit */
+#if 0
     TIM1->BDTR &= ~TIM_BDTR_AOE; //禁止自动输出，MOE只能软件置1  
     TIM1->BDTR &= ~TIM_BDTR_BKP; //刹车输入极性-低电平
     TIM1->BDTR &= ~TIM_BDTR_BKE; //刹车输入禁止
     TIM1->BDTR |= TIM_BDTR_OSSR; //当MOE=1且通道为互补输出时，在定时器不工作时，一旦设置CCxE/CCxNE=1，OC/OCN使能并输出无效电平
-    TIM1->BDTR &= TIM_BDTR_OSSI; //当MOE=0且通道为输出时，在定时器不工作时，禁止OC/OCN输出
+    TIM1->BDTR &= ~TIM_BDTR_OSSI; //当MOE=0且通道为输出时，在定时器不工作时，禁止OC/OCN输出
     TIM1->BDTR &= ~TIM_BDTR_LOCK; //锁定关闭，寄存器无写保护
     TIM1->BDTR &= ~TIM_BDTR_DTG; //插入互补输出之间的死区时间0 * tDTS
-    
+#else
+    TIM1->BDTR = 0;
+    TIM1->BDTR |= TIM_BDTR_OSSR;
+#endif
+
     /* 定时器比较输出配置 */
-    
-    
-    
+    /* Disable the Channel 1: Reset the CC1E and CC1NE Bit */
+    TIM1->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC1NE);    
+    /* Select the Output Compare Mode */
+    TIM1->CCMR1 &= ~TIM_CCMR1_OC1M_0;
+    TIM1->CCMR1 |= TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1; //PWM mode 1
+    /* Set the Output Compare Polarity */
+    TIM1->CCER |= TIM_CCER_CC1P | TIM_CCER_CC1NP; //OC1和OC1N低电平有效
+    /* Set the Output Idle state */
+    TIM1->CR2 &= ~(TIM_CR2_OIS1N | TIM_CR2_OIS1); //MOE=0时，死区后OC1N=0，OC1=0
+    /* Set the Capture Compare Register value */
+    TIM1->CCR1 = PWM_Duty; //
+
+#if 0
+    /* Enable the tim1 */   
+    TIM1->CR1 |= TIM_CR1_CEN;
+    /* Enable the main output */
+    TIM1->BDTR |= TIM_BDTR_MOE;
+    /* Enable the Capture compare channel */
+    TIM1->CCER |= TIM_CCER_CC1E; //enable OC1
+    /* Disable the complementary PWM output  */
+    TIM1->CCER &= ~TIM_CCER_CC1NE; //disable OC1N
+#endif 
+    SetMotorStop();
+    BDCMOTOR_Dir = BDCMOTOR_FORWARD;
 }
 
-void TIM_config(void)
+/**
+  * 函数功能: 设置电机速度
+  * 输入函数: Duty,输出脉冲占空比
+  * 返 回 值: 无
+  * 说    明: 无
+  */
+void SetMotorSpeed(int16_t Duty)
 {
-	//Enable the peripheral clock of Timer 1
-	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-#if 1//??PLL??????
-	TIM1->PSC|=3;//Set prescaler to 3, so APBCLK/4 i.e 12MHz
-	TIM1->ARR=12000-1;//as timer clock is 12MHz, an event occurs each 1ms
-#else //??HSI??????
-	TIM1->PSC = 0;//HSI=8MHz
-	TIM1->ARR = 8000-1;//as timer clock is 8MHz, an event occurs each 1ms	
-#endif	
-	TIM1->CR1 &= ~TIM_CR1_DIR;
-
-	TIM1->CR1 |= TIM_CR1_CEN;
+    TIM1->CCR1 = Duty;
 }
 
-
-
-void MCO_config(void)
+/**
+  * 函数功能: 设置电机转动方向
+  * 输入函数: Dir,电机转动方向
+  * 返 回 值: 无
+  * 说    明: 无
+  */
+void SetMotorDir(int16_t Dir)
 {
-	//PA8???????MCO  
-	//RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //??Port A??
-	GPIOA->MODER &= ~GPIO_MODER_MODER8;
-	GPIOA->MODER |= GPIO_MODER_MODER8_1;//MODER8[1:0]=10,PA8??????  
-	GPIOA->AFR[1] &=  ~GPIO_AFRH_AFRH0;//PA8??????AF0,?MCO
-	
-	//??MCO??????  
-	//RCC->CFGR |= (uint32_t)0x80000000U;//not available on stm32f030x8,PLL no divided for MCO
-	RCC->CFGR |= RCC_CFGR_MCO_HSI;//RCC_CFGR_MCO_PLL;//RCC_CFGR_MCO_SYSCLK;//
+    if(Dir)
+    {
+        /* Enable the Capture compare channel */
+        TIM1->CCER |= TIM_CCER_CC1E; //enable OC1
+        /* Disable the complementary PWM output  */
+        TIM1->CCER &= ~TIM_CCER_CC1NE; //disable OC1N
+    }
+    else
+    {
+        /* Disable the Capture compare channel */
+        TIM1->CCER &= ~TIM_CCER_CC1E; //disable OC1
+        /* Enable the complementary PWM output  */
+        TIM1->CCER |= TIM_CCER_CC1NE; //enable OC1N
+    }
+    /* Enable the main output */
+    TIM1->BDTR |= TIM_BDTR_MOE;
+    /* TIM1 enable counter */
+    TIM1->CR1 |= TIM_CR1_CEN;
+    
+    BDCMOTOR_state = BDCMOTOR_RUN;
 }
+
+
+void SetMotorStop(void)
+{
+    /* Disable the Capture compare channel */
+    /* Disable the complementary PWM output  */
+    TIM1->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC1NE); //disable OC1, disable OC1N
+    /* Disable the Main Output */
+    while((TIM1->CCER & (TIM_CCER_CC1E | TIM_CCER_CC1NE)) !=0);
+    TIM1->BDTR &= ~TIM_BDTR_MOE;
+    /* Disable the Peripheral */
+    TIM1->CR1 &= ~TIM_CR1_CEN;
+    
+    BDCMOTOR_state = BDCMOTOR_IDLE;
+}
+
 
