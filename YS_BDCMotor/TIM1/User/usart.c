@@ -90,6 +90,7 @@ int fputc(int ch, FILE *f)
     /* Loop until the end of transmission */
     while ((USART->ISR & USART_ISR_TC) == RESET)
     {}
+    USART->ICR |= USART_ICR_TCCF;
     return ch;
 }
 

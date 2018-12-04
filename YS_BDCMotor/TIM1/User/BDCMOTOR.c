@@ -8,7 +8,7 @@ void BDCMOTOR_GPIO_Init(void)
     /*****************************************
         PIN41:PA8--TIM1_CH1
         PIN34:PB13(NetCN10_30)--TIM1_CH1N
-        PIN42:PA9--SHUTDOWN
+        PIN29:PB10--SHUTDOWN
     *****************************************/
 	//PA8
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;  //打开Port A时钟
@@ -24,7 +24,7 @@ void BDCMOTOR_GPIO_Init(void)
 	GPIOB->MODER &= (~GPIO_MODER_MODER13);
 	GPIOB->MODER |= GPIO_MODER_MODER13_1; //复用功能
 	GPIOB->OTYPER &= (~GPIO_OTYPER_OT_13); //推挽输出
-    GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR13; //设置引脚速度为50MHZ  
+    GPIOB->OSPEEDR |= GPIO_OSPEEDR_OSPEEDR13; //设置引脚速度为50MHZ 
 	GPIOB->AFR[1] &= ~GPIO_AFRH_AFRH5;//复用功能AF2：TIM1_CH1N
     GPIOB->AFR[1] |= 0x00200000U;//
 

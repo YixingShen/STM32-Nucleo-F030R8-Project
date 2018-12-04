@@ -46,6 +46,7 @@ void Get_Para()
     {
         printf("      Y --> 启动     \r\n");
         scanf("%c",&ch);
+        printf("Your input is %c\r\n",ch);
         /* 启动转动 */
         if((ch=='y')||(ch=='Y'))
         {
@@ -58,6 +59,7 @@ void Get_Para()
     {
         printf("      N --> 停止    \r\n");
         scanf("%c",&ch);
+        printf("Your input is %c\r\n",ch);
         /* 停止转动 */
         if((ch=='n')||(ch=='N'))
         {
@@ -71,6 +73,7 @@ void Get_Para()
     /* 设置占空比 */
     printf("\n------设置输出占空比 x(-2400~2400),正负代表转动方向,并以回车键结束 \r\n");
     scanf("%d",&Num);
+    printf("Your input is %d\r\n",Num);
     while((Num > (BDCMOTOR_TIM_PERIOD+1) || (Num <- (BDCMOTOR_TIM_PERIOD+1) )))
     {
         printf("\r\n --速度输入错误,请从新输入( -2400~2400 )\r\n");
@@ -133,7 +136,9 @@ int main(void)
 //        printf("Your input is %d\r\n",ch);
 //        scanf("%f",&ft); 
 //        printf("Your input is %f\r\n",ft);
+        LED_ON();
         Get_Para();
+        LED_OFF();
         if(DCMotor_Param.IS_Enable)
         {
             /* 设置方向和速度 */
@@ -144,8 +149,10 @@ int main(void)
             else
             {
                 SetMotorDir(0);
+                printf("Duty_Cycles is %d\r\n",DCMotor_Param.Duty_Cycles);
                 DCMotor_Param.Duty_Cycles = -DCMotor_Param.Duty_Cycles;
             }
+            printf("Duty_Cycles is %d\r\n",DCMotor_Param.Duty_Cycles);
             SetMotorSpeed(DCMotor_Param.Duty_Cycles);
         }
         else
