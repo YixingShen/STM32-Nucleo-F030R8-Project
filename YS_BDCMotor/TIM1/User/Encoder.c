@@ -4,6 +4,11 @@ int16_t OverflowCount = 0;//定时器溢出次数
 
 void ENCODER_GPIO_Init(void)
 {
+    /*****************************************
+        PIN22:PA6--NetCN5_5
+        PIN23:PA7--NetCN5_4
+    *****************************************/
+    
     /*PA6: TIM3_CH1*/
     RCC->AHBENR |= ENCODER_TIM_CH1_GPIO_RCC; //打开GPIO时钟
     ENCODER_TIM_CH1_PORT->MODER |= GPIO_MODER_MODER6_1; //复用功能
@@ -27,40 +32,26 @@ void ENCODER_TIMx_Init(void)
     
     /* 定时器基本环境配置 */
     /* Time base configuration */
-    TIM_TimeBaseStructure.TIM_Period = ENCODER_TIM_PERIOD;
-    TIM_TimeBaseStructure.TIM_Prescaler = ENCODER_TIM_PRESCALER;
-    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-    TIM_TimeBaseInit(ENCODER_TIMx, &TIM_TimeBaseStructure);    
+    //向上计数
+    ENCODER_TIMx->CR1 = 0;
+    ENCODER_TIMx->ARR = ENCODER_TIM_PERIOD;
+    ENCODER_TIMx->PSC = ENCODER_TIM_PRESCALER;
+    ENCODER_TIMx->CNT = 0;
+    ENCODER_TIMx->EGR = TIM_EGR_UG;
     
-    TIM_SetCounter(ENCODER_TIMx, 0);
-    
-#if 1 
-    TIM_EncoderInterfaceConfig(ENCODER_TIMx, TIM_ENCODERMODE_TIx, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
-    ENCODER_TIMx->CCER |= TIM_CCER_CC1E | TIM_CCER_CC2E;
-#else
-    ENCODER_TIMx->SMCR |= TIM_SMCR_SMS_0 | TIM_SMCR_SMS_1;
-    
-    sEncoderConfig.TIM_Channel = TIM_Channel_1;
-    sEncoderConfig.TIM_ICFilter = 0;
-    sEncoderConfig.TIM_ICPolarity = TIM_ICPolarity_Rising;
-    sEncoderConfig.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-    sEncoderConfig.TIM_ICSelection = TIM_ICSelection_DirectTI;
-    TIM_ICInit(ENCODER_TIMx, &sEncoderConfig);
-    
-    sEncoderConfig.TIM_Channel = TIM_Channel_2;
-    TIM_ICInit(ENCODER_TIMx, &sEncoderConfig);
-#endif
-    //TIM_ClearFlag(ENCODER_TIMx, TIM_FLAG_Update); // 清除更新中断标志位
-    TIM_ClearITPendingBit(ENCODER_TIMx, TIM_IT_Update);
-    TIM_UpdateRequestConfig(ENCODER_TIMx, TIM_UpdateSource_Regular); // 仅允许计数器溢出才产生更新中断
-    TIM_ITConfig(ENCODER_TIMx, TIM_IT_Update, ENABLE); // 使能更新中断
+    //编码器模式3
+    ENCODER_TIMx->SMCR = TIM_SMCR_SMS_0 | TIM_SMCR_SMS_1;
+    ENCODER_TIMx->CCMR1 = TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_0;
+    ENCODER_TIMx->CCER = TIM_CCER_CC2P | TIM_CCER_CC2E | TIM_CCER_CC1P | TIM_CCER_CC1E;
+
+    ENCODER_TIMx->SR &= (~TIM_SR_UIF); // 清除更新中断标志位
+    ENCODER_TIMx->CR1 |= TIM_CR1_URS; // 仅允许计数器溢出才产生更新中断
+    ENCODER_TIMx->DIER = TIM_DIER_UIE; // 使能更新中断
 
     NVIC_SetPriority(ENCODER_TIM_IRQn, 0);
     NVIC_EnableIRQ(ENCODER_TIM_IRQn);     
     
-    TIM_Cmd(ENCODER_TIMx, ENABLE);
+    ENCODER_TIMx->CR1 |= TIM_CR1_CEN;
 }
 
 
